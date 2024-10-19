@@ -80,7 +80,7 @@
               on:click={() => selectItem(item)}
               class="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
             >
-              Select
+              Customize
             </button>
           {/if}
         </div>
@@ -99,13 +99,13 @@
     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
 
     <div class="fixed inset-0 z-10 overflow-y-auto">
-      <div
-        class="flex min-h-screen items-end justify-center p-4 text-center sm:items-center sm:p-0"
-      >
+      <div class="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
         <div
-          class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+          class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all w-full max-w-lg mx-auto"
         >
-          <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+          <div
+            class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 max-h-[80vh] overflow-y-auto"
+          >
             <h2 class="text-2xl font-bold mb-4">Customize {selectedItem.name}</h2>
 
             {#if selectedItem.allows_milk_choice}

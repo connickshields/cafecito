@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { fly } from "svelte/transition";
   import { getOrders, updateOrderStatus, signOut } from "./supabase";
   import type { Order } from "../types";
@@ -9,13 +9,41 @@
   let activeOrders = 0;
   let completedOrders = 0;
   let averageFulfillmentTime = "";
+  let intervalId: NodeJS.Timeout;
+  let newOrderIds: Set<number> = new Set();
 
   onMount(async () => {
     await fetchOrders();
+    intervalId = setInterval(fetchOrders, 5000); // Fetch orders every 5 seconds
+  });
+
+  onDestroy(() => {
+    clearInterval(intervalId);
   });
 
   async function fetchOrders() {
-    orders = await getOrders();
+    const newOrders = await getOrders();
+    newOrders.sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+
+    // Check for new orders
+    const newIds = newOrders
+      .filter((order) => !orders.some((o) => o.id === order.id))
+      .map((order) => order.id);
+    if (newIds.length > 0) {
+      playNewOrderSound();
+      newIds.forEach((id) => newOrderIds.add(id));
+      newOrderIds = newOrderIds; // Trigger reactivity
+
+      // Remove highlight after 5 seconds
+      setTimeout(() => {
+        newIds.forEach((id) => newOrderIds.delete(id));
+        newOrderIds = newOrderIds; // Trigger reactivity
+      }, 5000);
+    }
+
+    orders = newOrders;
     orders.sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
@@ -95,12 +123,22 @@
         return { text: status, color: "bg-gray-100 text-gray-800" };
     }
   }
+
   async function changeOrderStatus(orderId: number, newStatus: string) {
     await updateOrderStatus(orderId, newStatus);
     await fetchOrders(); // This will recalculate all orders and statistics
     if (selectedOrder && selectedOrder.id === orderId) {
-      selectedOrder = orders.find((order) => order.id === orderId) || null;
+      if (newStatus === "completed") {
+        selectedOrder = null; // Close the flyout
+      } else {
+        selectedOrder = orders.find((order) => order.id === orderId) || null;
+      }
     }
+  }
+
+  function playNewOrderSound() {
+    const audio = new Audio("./assets/sounds/new-order.mp3");
+    audio.play();
   }
 </script>
 
@@ -126,6 +164,14 @@
             >
             <span class="text-sm text-gray-500">Avg. Time</span>
           </div>
+          {#if orders.filter((order) => order.status === "pending").length > 0}
+            <div class="flex flex-col items-center">
+              <span class="text-2xl font-bold text-red-600"
+                >{orders.filter((order) => order.status === "pending").length}</span
+              >
+              <span class="text-sm text-gray-500">New Orders</span>
+            </div>
+          {/if}
         </div>
         <button
           on:click={handleSignOut}
@@ -159,7 +205,10 @@
           <div class="bg-white shadow overflow-hidden sm:rounded-md">
             <ul class="divide-y divide-gray-200">
               {#each orders.filter((order) => order.status === "pending" || order.status === "in_progress") as order (order.id)}
-                <li>
+                <li
+                  class="transition-colors duration-500"
+                  class:bg-yellow-50={newOrderIds.has(order.id)}
+                >
                   <button
                     on:click={() => selectOrder(order)}
                     class="block hover:bg-gray-50 w-full text-left"
@@ -236,39 +285,34 @@
 
         <div class="space-y-4">
           {#each selectedOrder.items as item}
-            <div class="bg-gray-50 rounded-lg p-4 flex justify-between items-center">
-              <div>
-                <h3 class="font-semibold">{item.name}</h3>
-                {#if item.milkOption}
-                  <div class="mt-2">
-                    <span
-                      class="inline-block px-2 py-1 text-xs font-semibold rounded-full"
-                      style="background-color: {getMilkColor(item.milkOption)};"
-                    >
-                      {item.milkOption}
-                    </span>
-                  </div>
-                {/if}
-                {#if item.customizations && item.customizations.length > 0}
-                  <div class="mt-2">
-                    {#each item.customizations as customization}
+            {#each Array(item.quantity) as _, i}
+              <div class="bg-gray-50 rounded-lg p-4">
+                <div class="flex justify-between items-start">
+                  <h3 class="font-semibold text-lg">{item.name}</h3>
+                  <div class="text-right">
+                    {#if item.milkOption}
                       <span
-                        class="inline-block bg-gray-200 rounded-full px-2 py-1 text-xs font-semibold text-gray-700 mr-1 mb-1"
+                        class="inline-block px-3 py-1 text-sm font-semibold rounded-full mb-2"
+                        style="background-color: {getMilkColor(item.milkOption)};"
                       >
-                        {customization}
+                        {item.milkOption}
                       </span>
-                    {/each}
+                    {/if}
+                    {#if item.customizations && item.customizations.length > 0}
+                      <div>
+                        {#each item.customizations as customization}
+                          <span
+                            class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 ml-2 mb-2"
+                          >
+                            {customization}
+                          </span>
+                        {/each}
+                      </div>
+                    {/if}
                   </div>
-                {/if}
+                </div>
               </div>
-              <div class="flex-shrink-0">
-                <span
-                  class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-800 text-sm font-medium"
-                >
-                  {item.quantity}
-                </span>
-              </div>
-            </div>
+            {/each}
           {/each}
         </div>
 
