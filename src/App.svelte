@@ -3,7 +3,12 @@
   import CustomerView from "./lib/CustomerView.svelte";
   import BaristaView from "./lib/BaristaView.svelte";
   import BaristaLogin from "./lib/BaristaLogin.svelte";
-  import { userSession, isBaristaUser, signInAnonymously } from "./lib/supabase";
+  import {
+    userSession,
+    isBaristaUser,
+    signInAnonymously,
+    supabase,
+  } from "./lib/supabase";
 
   let customerName = "";
   let submittedCustomerName = "";
@@ -11,7 +16,14 @@
   let loading = true;
 
   onMount(async () => {
-    await signInAnonymously();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session) {
+      userSession.set(session);
+    } else {
+      await signInAnonymously();
+    }
     loading = false;
   });
 
@@ -36,6 +48,7 @@
     {#if isBaristaUser($userSession.user)}
       <BaristaView />
     {:else if !submittedCustomerName}
+      <!-- Customer name input form -->
       <header class="bg-white shadow">
         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <h1 class="text-3xl font-bold text-gray-900">Cafecito ☕</h1>

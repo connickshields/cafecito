@@ -29,7 +29,9 @@
 
     // Check for new orders
     const newIds = newOrders
-      .filter((order) => !orders.some((o) => o.id === order.id))
+      .filter(
+        (order) => order.status === "pending" && !orders.some((o) => o.id === order.id)
+      )
       .map((order) => order.id);
     if (newIds.length > 0) {
       playNewOrderSound();
@@ -199,8 +201,29 @@
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <div class="px-4 py-6 sm:px-0">
         <h2 class="text-xl font-semibold mb-4">Active Orders</h2>
-        {#if orders.length === 0}
-          <p>No orders at the moment.</p>
+        {#if orders.filter((order) => order.status === "pending" || order.status === "in_progress").length === 0}
+          <div class="text-center py-12">
+            <svg
+              class="mx-auto h-24 w-24 text-gray-400"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+              <line x1="6" y1="1" x2="6" y2="4" />
+              <line x1="10" y1="1" x2="10" y2="4" />
+              <line x1="14" y1="1" x2="14" y2="4" />
+              <path d="M4 12c3.5 1 6.5 1 10 0" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No active orders</h3>
+            <p class="mt-1 text-sm text-gray-500">
+              Time to relax! New orders will appear here.
+            </p>
+          </div>
         {:else}
           <div class="bg-white shadow overflow-hidden sm:rounded-md">
             <ul class="divide-y divide-gray-200">
@@ -284,16 +307,32 @@
         </p>
 
         <div class="space-y-4">
-          {#each selectedOrder.items as item}
+          {#each selectedOrder.items as item, itemIndex}
             {#each Array(item.quantity) as _, i}
-              <div class="bg-gray-50 rounded-lg p-4">
+              <button
+                class="bg-gray-50 rounded-lg p-4 w-full text-left transition-colors duration-200 hover:bg-gray-100"
+                on:click={() => {
+                  item.completedInstances[i] = !item.completedInstances[i];
+                  selectedOrder = { ...selectedOrder };
+                }}
+              >
                 <div class="flex justify-between items-start">
-                  <h3 class="font-semibold text-lg">{item.name}</h3>
+                  <h3
+                    class="font-semibold text-lg"
+                    class:line-through={item.completedInstances &&
+                      item.completedInstances[i]}
+                    class:text-gray-400={item.completedInstances &&
+                      item.completedInstances[i]}
+                  >
+                    {item.name}
+                  </h3>
                   <div class="text-right">
                     {#if item.milkOption}
                       <span
                         class="inline-block px-3 py-1 text-sm font-semibold rounded-full mb-2"
                         style="background-color: {getMilkColor(item.milkOption)};"
+                        class:opacity-50={item.completedInstances &&
+                          item.completedInstances[i]}
                       >
                         {item.milkOption}
                       </span>
@@ -303,6 +342,8 @@
                         {#each item.customizations as customization}
                           <span
                             class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 ml-2 mb-2"
+                            class:opacity-50={item.completedInstances &&
+                              item.completedInstances[i]}
                           >
                             {customization}
                           </span>
@@ -311,7 +352,7 @@
                     {/if}
                   </div>
                 </div>
-              </div>
+              </button>
             {/each}
           {/each}
         </div>

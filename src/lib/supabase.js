@@ -4,7 +4,13 @@ import { writable } from 'svelte/store'
 const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storageKey: 'cafecito-auth'
+  }
+})
 
 // Create a store for the user session
 export const userSession = writable(null)
@@ -211,7 +217,8 @@ export async function getOrders() {
       name: item.items.name,
       quantity: item.quantity,
       milkOption: item.milk_options ? item.milk_options.name : null,
-      customizations: item.order_item_customizations.map(c => c.customization_options.name)
+      customizations: item.order_item_customizations.map(c => c.customization_options.name),
+      completedInstances: new Array(item.quantity).fill(false)
     }))
   }));
 }

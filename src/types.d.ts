@@ -47,5 +47,6 @@ export type Order = {
       quantity: number;
       milkOption: string | null;
       customizations: string[];
+      completedInstances: boolean[];
     }[];
 };
