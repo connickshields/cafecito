@@ -2,6 +2,7 @@
   import { fly } from "svelte/transition";
   import { createEventDispatcher } from "svelte";
   import type { OrderItem } from "../types";
+  import Icons from "./Icons.svelte";
 
   export let orderItems: OrderItem[] = [];
   export let visible = false;
@@ -66,7 +67,7 @@
                     on:click={() => removeItem(item.tempId)}
                     class="ml-4 text-red-500 hover:text-red-700"
                   >
-                    Remove
+                    <Icons name="trash" size={20} />
                   </button>
                 </div>
               </div>

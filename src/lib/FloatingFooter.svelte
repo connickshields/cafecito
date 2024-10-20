@@ -31,7 +31,7 @@
         <div in:fly={{ y: 20, duration: 300 }} out:fade={{ duration: 200 }}>
           <button
             on:click={onViewCart}
-            class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 flex items-center"
+            class="bg-neutral text-white px-4 py-2 rounded-md hover:bg-background flex items-center"
           >
             <span class="mr-2">
               <Icons name="cart" size={20} />

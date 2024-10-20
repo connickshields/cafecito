@@ -3,6 +3,7 @@
   import { fly } from "svelte/transition";
   import { getOrders, updateOrderStatus, signOut } from "./supabase";
   import type { Order } from "../types";
+  import Icons from "./Icons.svelte";
 
   let orders: Order[] = [];
   let selectedOrder: Order | null = null;
@@ -179,20 +180,7 @@
           class="text-gray-600 hover:text-gray-900"
           aria-label="Sign Out"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-            />
-          </svg>
+          <Icons name="logout" size={24} />
         </button>
       </div>
     </header>
@@ -202,22 +190,9 @@
         <h2 class="text-xl font-semibold mb-4">Active Orders</h2>
         {#if orders.filter((order) => order.status === "pending" || order.status === "in_progress").length === 0}
           <div class="text-center py-12">
-            <svg
-              class="mx-auto h-24 w-24 text-gray-400"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-              <line x1="6" y1="1" x2="6" y2="4" />
-              <line x1="10" y1="1" x2="10" y2="4" />
-              <line x1="14" y1="1" x2="14" y2="4" />
-              <path d="M4 12c3.5 1 6.5 1 10 0" />
-            </svg>
+            <div class="flex justify-center">
+              <Icons name="stylized-cup" size={100} />
+            </div>
             <h3 class="mt-2 text-sm font-medium text-gray-900">No active orders</h3>
             <p class="mt-1 text-sm text-gray-500">
               Time to relax! New orders will appear here.
@@ -284,14 +259,7 @@
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-lg font-semibold">Order #{selectedOrder.id}</h2>
           <button on:click={closeOrderDetails} class="text-gray-500 hover:text-gray-700">
-            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <Icons name="close" size={24} />
           </button>
         </div>
         <p class="text-sm text-gray-600 mb-2">Customer: {selectedOrder.customerName}</p>

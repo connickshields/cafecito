@@ -3,6 +3,7 @@
   import { fade } from "svelte/transition";
   import { cancelOrder, getOrderDetails } from "./supabase";
   import type { OrderDetails } from "../types";
+  import Icons from "./Icons.svelte";
 
   export let orderId: number;
   export let onClose: () => void;
@@ -55,68 +56,19 @@
           <div class="w-48 h-48 flex items-center justify-center">
             {#if orderDetails.status === "pending"}
               <div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }}>
-                <svg
-                  class="h-24 w-24 text-gray-400"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
+                <Icons name="pending" size={100} />
               </div>
             {:else if orderDetails.status === "in_progress"}
               <div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }}>
-                <svg
-                  class="h-24 w-24 text-gray-400"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-                  <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-                  <line x1="6" y1="1" x2="6" y2="4" />
-                  <line x1="10" y1="1" x2="10" y2="4" />
-                  <line x1="14" y1="1" x2="14" y2="4" />
-                  <path d="M4 12c3.5 1 6.5 1 10 0" />
-                </svg>
+                <Icons name="stylized-cup" size={100} />
               </div>
             {:else if orderDetails.status === "completed"}
               <div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }}>
-                <svg
-                  class="h-24 w-24 text-gray-400"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
+                <Icons name="complete" size={100} />
               </div>
             {:else if orderDetails.status === "cancelled"}
               <div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }}>
-                <svg
-                  class="h-24 w-24 text-gray-400"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
+                <Icons name="cancelled" size={100} />
               </div>
             {/if}
           </div>

@@ -72,14 +72,14 @@
           {#if !item.allows_milk_choice && !item.allows_customizations}
             <button
               on:click={() => addToOrder(item, null, [])}
-              class="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+              class="mt-4 bg-primary text-white px-4 py-2 rounded-md hover:bg-accent"
             >
               Add to Cart
             </button>
           {:else}
             <button
               on:click={() => selectItem(item)}
-              class="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 flex items-center justify-center"
+              class="mt-4 bg-primary text-white px-4 py-2 rounded-md hover:bg-accent flex items-center justify-center"
             >
               <span class="mr-2">
                 <Icons name="coffee-cup" size={20} />
@@ -118,7 +118,7 @@
                 {#each milkOptions as milk}
                   <button
                     class="p-2 rounded-md text-center {selectedMilkOptionId === milk.id
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-secondary text-white'
                       : 'bg-gray-200 text-gray-800'}"
                     on:click={() => (selectedMilkOptionId = milk.id)}
                   >
@@ -149,7 +149,7 @@
             <button
               type="button"
               on:click={handleAddToCart}
-              class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto"
+              class="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent sm:ml-3 sm:w-auto"
               disabled={selectedItem.allows_milk_choice && selectedMilkOptionId === null}
             >
               Add to Cart

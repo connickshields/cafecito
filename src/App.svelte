@@ -3,6 +3,7 @@
   import CustomerView from "./lib/CustomerView.svelte";
   import BaristaView from "./lib/BaristaView.svelte";
   import BaristaLogin from "./lib/BaristaLogin.svelte";
+  import Icons from "./lib/Icons.svelte";
   import {
     userSession,
     isBaristaUser,
@@ -49,9 +50,9 @@
       <BaristaView />
     {:else if !submittedCustomerName}
       <!-- Customer name input form -->
-      <header class="bg-white shadow">
-        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 class="text-3xl font-bold text-gray-900">Cafecito ☕</h1>
+      <header class="bg-primary shadow">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-center">
+          <h1 class="text-3xl font-bold text-white font-display">Cafecito</h1>
         </div>
       </header>
       <form
@@ -59,6 +60,9 @@
         class="space-y-4 bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 max-w-md mx-auto mt-8"
       >
         <h2 class="text-2xl font-bold text-center mb-4">Welcome!</h2>
+        <div class="flex justify-center m-4">
+          <Icons name="stylized-cup" size={100} />
+        </div>
         <input
           type="text"
           bind:value={customerName}
@@ -67,7 +71,7 @@
         />
         <button
           type="submit"
-          class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          class="w-full bg-primary text-white px-4 py-2 rounded-md hover:bg-accent"
         >
           Start Order
         </button>
@@ -77,20 +81,7 @@
         class="fixed bottom-4 right-4 bg-gray-200 text-gray-700 p-2 rounded-full hover:bg-gray-300"
         aria-label="Barista Login"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-6 w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-          />
-        </svg>
+        <Icons name="person" size={24} />
       </button>
     {:else}
       <CustomerView customerName={submittedCustomerName} />
