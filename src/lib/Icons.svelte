@@ -11,6 +11,7 @@
     | "logout"
     | "close";
   export let size = 24;
+  export let color = "currentColor";
 </script>
 
 {#if name === "cart"}
@@ -20,7 +21,7 @@
     height={size}
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
+    stroke={color}
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
@@ -36,7 +37,7 @@
     height={size}
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
+    stroke={color}
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
@@ -55,7 +56,7 @@
     height={size}
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
+    stroke={color}
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
@@ -71,7 +72,7 @@
     class="h-24 w-24 text-gray-400"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
+    stroke={color}
     stroke-width="1.5"
     stroke-linecap="round"
     stroke-linejoin="round"
@@ -84,7 +85,7 @@
     class="h-24 w-24 text-gray-400"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
+    stroke={color}
     stroke-width="1.5"
     stroke-linecap="round"
     stroke-linejoin="round"
@@ -101,7 +102,7 @@
     class="h-24 w-24 text-gray-400"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
+    stroke={color}
     stroke-width="1.5"
     stroke-linecap="round"
     stroke-linejoin="round"
@@ -114,7 +115,7 @@
     class="h-24 w-24 text-gray-400"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
+    stroke={color}
     stroke-width="1.5"
     stroke-linecap="round"
     stroke-linejoin="round"
@@ -129,7 +130,7 @@
     class="h-6 w-6"
     fill="none"
     viewBox="0 0 24 24"
-    stroke="currentColor"
+    stroke={color}
   >
     <path
       stroke-linecap="round"
@@ -139,7 +140,7 @@
     />
   </svg>
 {:else if name === "close"}
-  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke={color}>
     <path
       stroke-linecap="round"
       stroke-linejoin="round"
@@ -153,7 +154,7 @@
     class="h-6 w-6"
     fill="none"
     viewBox="0 0 24 24"
-    stroke="currentColor"
+    stroke={color}
   >
     <path
       stroke-linecap="round"

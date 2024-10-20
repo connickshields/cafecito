@@ -49,26 +49,26 @@
       <div class="mb-6">
         <div class="flex flex-col items-center justify-center mb-2">
           <span
-            class="text-lg font-semibold inline-block py-1 px-3 mb-4 rounded-full text-blue-600 bg-blue-200"
+            class="text-lg font-semibold inline-block py-1 px-3 mb-4 rounded-full text-white bg-background"
           >
             {statusMap[orderDetails.status]}
           </span>
           <div class="w-48 h-48 flex items-center justify-center">
             {#if orderDetails.status === "pending"}
               <div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }}>
-                <Icons name="pending" size={100} />
+                <Icons name="pending" size={250} color="#FFCF33" />
               </div>
             {:else if orderDetails.status === "in_progress"}
               <div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }}>
-                <Icons name="stylized-cup" size={100} />
+                <Icons name="stylized-cup" size={200} color="#FFCF33" />
               </div>
             {:else if orderDetails.status === "completed"}
               <div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }}>
-                <Icons name="complete" size={100} />
+                <Icons name="complete" size={200} color="#FFCF33" />
               </div>
             {:else if orderDetails.status === "cancelled"}
               <div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }}>
-                <Icons name="cancelled" size={100} />
+                <Icons name="cancelled" size={200} color="#FFCF33" />
               </div>
             {/if}
           </div>
@@ -105,7 +105,7 @@
     {/if}
     <button
       on:click={onClose}
-      class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+      class="bg-primary text-white px-4 py-2 rounded-md hover:bg-accent"
     >
       Order Again
     </button>

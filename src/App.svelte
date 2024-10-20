@@ -52,7 +52,12 @@
       <!-- Customer name input form -->
       <header class="bg-primary shadow">
         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-center">
-          <h1 class="text-3xl font-bold text-white font-display">Cafecito</h1>
+          <h1
+            class="text-6xl font-bold text-white font-display"
+            style="font-family: 'Brush Script MT', cursive; text-shadow: 4px 4px 8px #EF8354;"
+          >
+            Cafecito
+          </h1>
         </div>
       </header>
       <form
