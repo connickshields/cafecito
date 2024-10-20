@@ -66,7 +66,15 @@
       <li class="border rounded-lg p-4">
         <div class="flex flex-col h-full justify-between">
           <div>
-            <h3 class="text-lg font-semibold">{item.name}</h3>
+            <div class="flex justify-between items-start">
+              <h3 class="text-lg font-semibold">{item.name}</h3>
+              {#if item.size !== null}
+                <span
+                  class="inline-block bg-gray-200 rounded-full px-2 py-1 text-xs text-gray-700 ml-2 mb-2"
+                  >{item.size}oz</span
+                >
+              {/if}
+            </div>
             <p class="text-gray-600">{item.description}</p>
           </div>
           {#if !item.allows_milk_choice && !item.allows_customizations}
@@ -110,16 +118,18 @@
           <div
             class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 max-h-[80vh] overflow-y-auto"
           >
-            <h2 class="text-2xl font-bold mb-4">Customize {selectedItem.name}</h2>
+            <h2 class="text-2xl font-bold mb-4">{selectedItem.name}</h2>
 
             {#if selectedItem.allows_milk_choice}
-              <h3 class="text-lg font-semibold mb-2">Select Milk</h3>
+              <h3 class="text-lg font-semibold mb-2">
+                Select Milk <span class="text-red-500">(required)</span>
+              </h3>
               <div class="grid grid-cols-2 gap-2 mb-4">
                 {#each milkOptions as milk}
                   <button
                     class="p-2 rounded-md text-center {selectedMilkOptionId === milk.id
                       ? 'bg-secondary text-white'
-                      : 'bg-gray-200 text-gray-800'}"
+                      : 'bg-white text-gray-800 border border-gray-200'}"
                     on:click={() => (selectedMilkOptionId = milk.id)}
                   >
                     {milk.name}

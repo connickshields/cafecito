@@ -5,6 +5,7 @@ export type MenuItem = {
     id: number;
     name: string;
     description: string;
+    size: number;
     available: boolean;
     allows_milk_choice: boolean;
     allows_customizations: boolean;

@@ -6,6 +6,7 @@ CREATE TABLE items (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
+    size INTEGER DEFAULT NULL,
     available BOOLEAN NOT NULL DEFAULT true,
     allows_milk_choice BOOLEAN NOT NULL DEFAULT true,
     allows_customizations BOOLEAN NOT NULL DEFAULT true,
@@ -64,11 +65,13 @@ CREATE TABLE order_item_customizations (
 
 -- Add some sample data
 INSERT INTO items (name, description, available, allows_milk_choice, allows_customizations) VALUES
-('Espresso', 'Strong black coffee', true, false, false),
-('Latte', '(12oz) Espresso with steamed milk', true, true, true),
-('Cappuccino', '(8oz) Espresso with equal parts steamed milk and foam', true, true, true),
-('Cortado', '(8oz) Espresso with teamed milk', true, false, false),
-('Americano', '(8oz) Espresso with hot water', true, false, true),
+('Espresso', 'Double shot of espresso', true, false, false),
+('Americano', '(8oz) Double espresso with hot water', true, false, false),
+('Cortado', '(4oz) Double espresso with steamed milk', true, false, false),
+('Cappuccino', '(8oz) Double espresso with equal parts steamed milk and foam', true, true, true),
+('Flat White', '(8oz) Double espresso with steamed milk', true, true, true),
+('Latte', '(12oz) Double espresso with steamed milk', true, true, true),
+('Matcha Latte', '(12oz) Hand-whisked Japanese matcha with steamed milk', true, true, false),
 ('Mocha', '(12oz) Espresso with steamed milk and chocolate', false, true, true);
 
 INSERT INTO milk_options (name, available) VALUES
