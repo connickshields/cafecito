@@ -35,8 +35,8 @@ export async function signInAnonymously() {
 // Sign out
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
-  if (error) throw error;
   userSession.set(null);
+  if (error) throw error;
 }
 
 // Regular sign in (for baristas)
@@ -157,6 +157,7 @@ export async function getOrderDetails(orderId) {
     .select(`
       id,
       status,
+      customer_name,
       order_items (
         id,
         quantity,
@@ -175,6 +176,7 @@ export async function getOrderDetails(orderId) {
   return {
     id: data.id,
     status: data.status,
+    customerName: data.customer_name,
     items: data.order_items.map(item => ({
       name: item.items.name,
       quantity: item.quantity,

@@ -28,6 +28,7 @@ export type OrderItem = {
 export type OrderDetails = {
     id: number;
     status: string;
+    customerName: string;
     items: {
       name: string;
       quantity: number;

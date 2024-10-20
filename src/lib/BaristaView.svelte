@@ -82,7 +82,6 @@
   async function handleSignOut() {
     try {
       await signOut();
-      window.location.href = "/";
     } catch (error) {
       console.error("Error signing out:", error);
     }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { fade, fly } from "svelte/transition";
   import Menu from "./Menu.svelte";
   import Cart from "./Cart.svelte";
   import FloatingFooter from "./FloatingFooter.svelte";
@@ -87,16 +88,22 @@
 </script>
 
 {#if showOrderStatus && currentOrderId}
-  <OrderStatus orderId={currentOrderId} onClose={closeOrderStatus} />
+  <div in:fade out:fade>
+    <OrderStatus orderId={currentOrderId} onClose={closeOrderStatus} />
+  </div>
 {:else}
-  <div class="min-h-screen bg-gray-100 flex flex-col">
+  <div
+    class="min-h-screen bg-gray-100 flex flex-col"
+    in:fly={{ y: 200, duration: 300 }}
+    out:fly={{ y: -200, duration: 300 }}
+  >
     <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="max-w-3xl mx-auto">
         {#if loading}
           <p class="text-center">Loading menu items...</p>
         {:else}
           <div class="space-y-8">
-            <h2 class="text-2xl font-bold mb-4">Welcome, {customerName}!</h2>
+            <h2 class="text-3xl font-bold mb-4 font-display">Welcome, {customerName}!</h2>
             <Menu {menuItems} {addToOrder} on:closeCart={() => (showCart = false)} />
             <Cart
               {orderItems}
