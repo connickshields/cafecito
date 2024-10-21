@@ -145,7 +145,7 @@
               <h3 class="text-lg font-semibold mb-2">
                 Select Milk <span class="text-red-400">(required)</span>
               </h3>
-              <div class="grid grid-cols-2 gap-2 mb-4">
+              <div class="grid grid-cols-3 gap-2 mb-4">
                 {#each milkOptions as milk}
                   <button
                     class="p-2 rounded-md text-center {selectedMilkOptionId === milk.id
