@@ -10,6 +10,7 @@
 
   let orderDetails: OrderDetails | null = null;
   let intervalId: NodeJS.Timeout;
+  let shouldShowOrderAgain = false;
 
   const statusMap = {
     pending: "Pending",
@@ -29,6 +30,8 @@
 
   async function updateOrderDetails() {
     orderDetails = await getOrderDetails(orderId);
+    shouldShowOrderAgain =
+      orderDetails?.status === "cancelled" || orderDetails?.status === "completed";
   }
 
   async function handleCancelOrder() {
@@ -103,11 +106,13 @@
     {:else}
       <p class="mb-4">Loading order details...</p>
     {/if}
-    <button
-      on:click={onClose}
-      class="bg-primary text-white px-4 py-2 rounded-md hover:bg-accent"
-    >
-      Order Again
-    </button>
+    {#if shouldShowOrderAgain}
+      <button
+        on:click={onClose}
+        class="bg-primary text-white px-4 py-2 rounded-md hover:bg-accent"
+      >
+        Order Again
+      </button>
+    {/if}
   </div>
 </div>

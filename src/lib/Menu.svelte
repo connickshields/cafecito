@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount, createEventDispatcher } from "svelte";
   import type { MenuItem } from "../types";
+  import Icons from "./Icons.svelte";
   import { getCustomizationOptions, getMilkOptions } from "./supabase";
+  import { fade } from "svelte/transition";
 
   const dispatch = createEventDispatcher();
 
@@ -19,6 +21,8 @@
   let milkOptions = [];
   let customizationOptions = [];
   let showCustomizationModal = false;
+
+  let justAddedItemId: number | null = null;
 
   onMount(async () => {
     milkOptions = await getMilkOptions();
@@ -43,18 +47,28 @@
     }
   }
 
-  function handleAddToCart() {
-    if (selectedItem) {
+  function handleAddToCart(item: MenuItem, useSelections: boolean = false) {
+    if (useSelections) {
       const selectedMilk = selectedMilkOptionId
         ? milkOptions.find((m) => m.id === selectedMilkOptionId)
         : null;
       const selectedCustomizations = customizationOptions.filter((c) =>
         selectedCustomizationOptionIds.includes(c.id)
       );
-      addToOrder(selectedItem, selectedMilk, selectedCustomizations);
-      selectedItem = null;
-      showCustomizationModal = false;
+      addToOrder(item, selectedMilk, selectedCustomizations);
+    } else {
+      addToOrder(item, null, []);
     }
+    animateAddToCart(item);
+    selectedItem = null;
+    showCustomizationModal = false;
+  }
+
+  function animateAddToCart(item: MenuItem) {
+    justAddedItemId = item.id;
+    setTimeout(() => {
+      justAddedItemId = null;
+    }, 2000); // Fade out after 2 seconds
   }
 </script>
 
@@ -62,7 +76,7 @@
   <h2 class="text-2xl font-bold mb-4">Menu</h2>
   <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
     {#each menuItems as item}
-      <li class="border rounded-lg p-4">
+      <li class="border rounded-lg p-4 relative">
         <div class="flex flex-col h-full justify-between">
           <div>
             <div class="flex justify-between items-start">
@@ -78,7 +92,7 @@
           </div>
           {#if !item.allows_milk_choice && !item.allows_customizations}
             <button
-              on:click={() => addToOrder(item, null, [])}
+              on:click={() => handleAddToCart(item)}
               class="mt-4 bg-primary text-white px-4 py-2 rounded-md hover:bg-accent"
             >
               Add to Cart
@@ -92,6 +106,17 @@
             </button>
           {/if}
         </div>
+        {#if justAddedItemId === item.id}
+          <div
+            transition:fade={{ duration: 300 }}
+            class="absolute inset-0 bg-green-400 bg-opacity-80 flex items-center justify-center rounded-lg"
+          >
+            <div class="text-white text-center">
+              <Icons name={"complete"} size={48} color="white" />
+              <p class="font-semibold">Added to Cart</p>
+            </div>
+          </div>
+        {/if}
       </li>
     {/each}
   </ul>
@@ -118,14 +143,14 @@
 
             {#if selectedItem.allows_milk_choice}
               <h3 class="text-lg font-semibold mb-2">
-                Select Milk <span class="text-red-500">(required)</span>
+                Select Milk <span class="text-red-400">(required)</span>
               </h3>
               <div class="grid grid-cols-2 gap-2 mb-4">
                 {#each milkOptions as milk}
                   <button
                     class="p-2 rounded-md text-center {selectedMilkOptionId === milk.id
-                      ? 'bg-secondary text-white'
-                      : 'bg-white text-gray-800 border border-gray-200'}"
+                      ? 'bg-accent text-white'
+                      : 'bg-white text-gray-800 border border-gray-200'} hover:bg-primary"
                     on:click={() => (selectedMilkOptionId = milk.id)}
                   >
                     {milk.name}
@@ -154,7 +179,7 @@
           <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
             <button
               type="button"
-              on:click={handleAddToCart}
+              on:click={() => handleAddToCart(selectedItem, true)}
               class="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent sm:ml-3 sm:w-auto"
               disabled={selectedItem.allows_milk_choice && selectedMilkOptionId === null}
             >
