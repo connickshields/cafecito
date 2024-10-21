@@ -49,40 +49,42 @@
     {#if isBaristaUser($userSession.user)}
       <BaristaView />
     {:else if !submittedCustomerName}
-      <!-- Customer name input form -->
-      <header class="bg-white shadow">
-        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-center">
-          <h1
-            class="text-6xl font-bold text-primary font-display yesteryear-regular"
-            style="-webkit-text-stroke: 8px #424B54; paint-order: stroke fill;"
-          >
-            Cafecito
-          </h1>
-        </div>
-      </header>
-      <div class="flex items-center justify-center flex-grow">
-        <form
-          on:submit|preventDefault={handleNameSubmit}
-          class="space-y-4 bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 max-w-md w-full"
-        >
-          <h2 class="text-2xl font-bold text-center mb-4">Welcome!</h2>
-          <div class="flex justify-center m-4">
-            <Icons name="stylized-cup" size={100} color={"#93A8AC"} />
+      <div class="flex flex-col min-h-screen">
+        <!-- Customer name input form -->
+        <header class="bg-white shadow">
+          <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-center">
+            <h1
+              class="text-6xl font-bold text-primary font-display yesteryear-regular"
+              style="-webkit-text-stroke: 8px #424B54; paint-order: stroke fill;"
+            >
+              Cafecito
+            </h1>
           </div>
-          <input
-            type="text"
-            id="firstName"
-            bind:value={customerName}
-            placeholder="Enter your name"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-          <button
-            type="submit"
-            class="w-full bg-primary text-white px-4 py-2 rounded-md hover:bg-accent"
+        </header>
+        <div class="flex-grow flex items-center justify-center">
+          <form
+            on:submit|preventDefault={handleNameSubmit}
+            class="space-y-4 bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 max-w-md w-full"
           >
-            Start Order
-          </button>
-        </form>
+            <h2 class="text-2xl font-bold text-center mb-4">Welcome!</h2>
+            <div class="flex justify-center m-4">
+              <Icons name="stylized-cup" size={100} color={"#93A8AC"} />
+            </div>
+            <input
+              type="text"
+              id="firstName"
+              bind:value={customerName}
+              placeholder="Enter your name"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+            <button
+              type="submit"
+              class="w-full bg-primary text-white px-4 py-2 rounded-md hover:bg-accent"
+            >
+              Start Order
+            </button>
+          </form>
+        </div>
       </div>
       <button
         on:click={toggleBaristaLogin}
