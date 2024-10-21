@@ -97,11 +97,11 @@
     in:fly={{ y: 200, duration: 300 }}
     out:fly={{ y: -200, duration: 300 }}
   >
-    <header class="bg-primary shadow">
+    <header class="bg-white shadow">
       <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-center">
         <h1
-          class="text-6xl font-bold text-white font-display"
-          style="font-family: 'Brush Script MT', cursive; text-shadow: 4px 4px 8px #EF8354;"
+          class="text-6xl font-bold text-primary font-display yesteryear-regular"
+          style="-webkit-text-stroke: 8px #424B54; paint-order: stroke fill;"
         >
           Cafecito
         </h1>

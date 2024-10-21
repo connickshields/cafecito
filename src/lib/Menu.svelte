@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, createEventDispatcher } from "svelte";
   import type { MenuItem } from "../types";
-  import Icons from "./Icons.svelte";
   import { getCustomizationOptions, getMilkOptions } from "./supabase";
 
   const dispatch = createEventDispatcher();
@@ -89,9 +88,6 @@
               on:click={() => selectItem(item)}
               class="mt-4 bg-primary text-white px-4 py-2 rounded-md hover:bg-accent flex items-center justify-center"
             >
-              <span class="mr-2">
-                <Icons name="coffee-cup" size={20} />
-              </span>
               Customize
             </button>
           {/if}

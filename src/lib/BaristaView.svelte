@@ -175,6 +175,12 @@
             </div>
           {/if}
         </div>
+        <h1
+          class="text-6xl font-bold text-primary font-display yesteryear-regular text-center absolute left-1/2 transform -translate-x-1/2"
+          style="-webkit-text-stroke: 8px #000; paint-order: stroke fill;"
+        >
+          Cafecito
+        </h1>
         <button
           on:click={handleSignOut}
           class="text-gray-600 hover:text-gray-900"
@@ -191,7 +197,7 @@
         {#if orders.filter((order) => order.status === "pending" || order.status === "in_progress").length === 0}
           <div class="text-center py-12">
             <div class="flex justify-center">
-              <Icons name="stylized-cup" size={100} />
+              <Icons name="stylized-cup" size={100} color={"#93A8AC"} />
             </div>
             <h3 class="mt-2 text-sm font-medium text-gray-900">No active orders</h3>
             <p class="mt-1 text-sm text-gray-500">

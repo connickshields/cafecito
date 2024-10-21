@@ -42,8 +42,9 @@
         <div in:fly={{ y: 20, duration: 300 }} out:fade={{ duration: 200 }}>
           <button
             on:click={onSubmitOrder}
-            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 flex items-center"
           >
+            <span class="mr-2"><Icons name="coffee-cup" size={20} /></span>
             Submit Order
           </button>
         </div>
