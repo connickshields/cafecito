@@ -55,7 +55,7 @@
           <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-center">
             <h1
               class="text-6xl font-bold text-primary font-display yesteryear-regular"
-              style="-webkit-text-stroke: 8px #424B54; paint-order: stroke fill;"
+              style="-webkit-text-stroke: 8px #000; paint-order: stroke fill;"
             >
               Cafecito
             </h1>

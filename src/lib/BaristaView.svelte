@@ -7,11 +7,12 @@
 
   let orders: Order[] = [];
   let selectedOrder: Order | null = null;
-  let activeOrders = 0;
   let completedOrders = 0;
   let averageFulfillmentTime = "";
   let intervalId: NodeJS.Timeout;
   let newOrderIds: Set<number> = new Set();
+  let showStats = false;
+  let statsPromise: Promise<Stats> | null = null;
 
   onMount(async () => {
     await fetchOrders();
@@ -52,9 +53,6 @@
     );
 
     // Calculate statistics
-    activeOrders = orders.filter(
-      (order) => order.status === "pending" || order.status === "in_progress"
-    ).length;
     completedOrders = orders.filter((order) => order.status === "completed").length;
 
     const completedOrderTimes = orders
@@ -142,6 +140,66 @@
     const audio = new Audio("./assets/sounds/new-order.mp3");
     audio.play();
   }
+
+  async function toggleStats() {
+    showStats = !showStats;
+    if (showStats) {
+      statsPromise = calculateStats();
+    }
+  }
+
+  interface Stats {
+    popularDrinks: Record<string, number>;
+    popularMilk: Record<string, number>;
+    popularCustomizations: Record<string, number>;
+    totalOrders: number;
+    completedOrders: number;
+    cancelledOrders: number;
+  }
+
+  async function calculateStats() {
+    const orders = await getOrders();
+    const completedOrders = orders.filter((order) => order.status === "completed");
+    const cancelledOrders = orders.filter((order) => order.status === "cancelled");
+
+    const stats: Stats = {
+      popularDrinks: {},
+      popularMilk: {},
+      popularCustomizations: {},
+      totalOrders: orders.length,
+      completedOrders: completedOrders.length,
+      cancelledOrders: cancelledOrders.length,
+    };
+
+    completedOrders.forEach((order) => {
+      order.items.forEach((item) => {
+        // Count drinks
+        const currentDrinkCount = stats.popularDrinks[item.name] ?? 0;
+        stats.popularDrinks[item.name] = currentDrinkCount + item.quantity;
+
+        // Count milk options
+        if (item.milkOption) {
+          const currentMilkCount = stats.popularMilk[item.milkOption] ?? 0;
+          stats.popularMilk[item.milkOption] = currentMilkCount + item.quantity;
+        }
+
+        // Count customizations
+        if (item.customizations && item.customizations.length > 0) {
+          item.customizations.forEach((customization) => {
+            const currentCustomizationCount =
+              stats.popularCustomizations[customization] ?? 0;
+            stats.popularCustomizations[customization] = currentCustomizationCount + 1;
+          });
+        }
+      });
+    });
+
+    return stats;
+  }
+
+  function sortEntries(entries: [string, number][]): [string, number][] {
+    return entries.sort((a, b) => b[1] - a[1]);
+  }
 </script>
 
 <div class="min-h-screen bg-gray-100 flex">
@@ -152,10 +210,6 @@
         class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center"
       >
         <div class="flex-1 flex items-center space-x-8">
-          <div class="flex flex-col items-center">
-            <span class="text-2xl font-bold text-blue-600">{activeOrders}</span>
-            <span class="text-sm text-gray-500">Active</span>
-          </div>
           <div class="flex flex-col items-center">
             <span class="text-2xl font-bold text-green-600">{completedOrders}</span>
             <span class="text-sm text-gray-500">Completed</span>
@@ -181,19 +235,27 @@
         >
           Cafecito
         </h1>
-        <button
-          on:click={handleSignOut}
-          class="text-gray-600 hover:text-gray-900"
-          aria-label="Sign Out"
-        >
-          <Icons name="logout" size={24} />
-        </button>
+        <div class="flex items-center space-x-4">
+          <button
+            on:click={toggleStats}
+            class="text-gray-600 hover:text-gray-900"
+            aria-label="View Statistics"
+          >
+            <Icons name="chart" size={24} />
+          </button>
+          <button
+            on:click={handleSignOut}
+            class="text-gray-600 hover:text-gray-900"
+            aria-label="Sign Out"
+          >
+            <Icons name="logout" size={24} />
+          </button>
+        </div>
       </div>
     </header>
 
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <div class="px-4 py-6 sm:px-0">
-        <h2 class="text-xl font-semibold mb-4">Active Orders</h2>
         {#if orders.filter((order) => order.status === "pending" || order.status === "in_progress").length === 0}
           <div class="text-center py-12">
             <div class="flex justify-center">
@@ -205,6 +267,7 @@
             </p>
           </div>
         {:else}
+          <h2 class="text-xl font-semibold mb-4">Active Orders</h2>
           <div class="bg-white shadow overflow-hidden sm:rounded-md">
             <ul class="divide-y divide-gray-200">
               {#each orders.filter((order) => order.status === "pending" || order.status === "in_progress") as order (order.id)}
@@ -355,5 +418,84 @@
         </div>
       </div>
     </div>
+  {/if}
+
+  {#if showStats}
+    {#await statsPromise}
+      <div class="w-1/5 bg-white border-l border-gray-200 overflow-y-auto">
+        <div class="p-4">
+          <p>Loading stats...</p>
+        </div>
+      </div>
+    {:then stats}
+      <div class="w-1/5 bg-white border-l border-gray-200 overflow-y-auto">
+        <div class="p-4">
+          <div class="flex justify-between items-center mb-4">
+            <div class="flex-1 text-center">
+              <h2 class="text-lg font-bold">Order Statistics</h2>
+            </div>
+            <button on:click={toggleStats} class="text-gray-500 hover:text-gray-700">
+              <Icons name="close" size={24} />
+            </button>
+          </div>
+
+          <div class="space-y-6">
+            <div>
+              <h3 class="text-md font-bold mb-2">Drinks</h3>
+              {#each sortEntries(Object.entries(stats.popularDrinks)) as [drink, count]}
+                <div class="flex justify-between items-center py-1">
+                  <span>{drink}</span>
+                  <span class="font-semibold">{count}</span>
+                </div>
+              {/each}
+              <div class="flex justify-between items-center py-1">
+                <span class="font-semibold">Total</span>
+                <span class="font-semibold"
+                  >{Object.values(stats.popularDrinks).reduce(
+                    (sum, count) => sum + count,
+                    0
+                  )}</span
+                >
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-md font-bold mb-2">Milk</h3>
+              {#each sortEntries(Object.entries(stats.popularMilk)) as [milk, count]}
+                <div class="flex justify-between items-center py-1">
+                  <span>{milk}</span>
+                  <span class="font-semibold">{count}</span>
+                </div>
+              {/each}
+            </div>
+
+            <div>
+              <h3 class="text-md font-bold mb-2">Customizations</h3>
+              {#each sortEntries(Object.entries(stats.popularCustomizations)) as [customization, count]}
+                <div class="flex justify-between items-center py-1">
+                  <span>{customization}</span>
+                  <span class="font-semibold">{count}</span>
+                </div>
+              {/each}
+            </div>
+
+            <div class="pt-4 border-t">
+              <div class="flex justify-between items-center">
+                <span class="font-semibold">Total</span>
+                <span class="font-semibold">{stats.totalOrders}</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span>Completed</span>
+                <span class="text-green-500">{stats.completedOrders}</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span>Cancelled</span>
+                <span class="text-red-500">{stats.cancelledOrders}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {/await}
   {/if}
 </div>

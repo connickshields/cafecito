@@ -75,10 +75,10 @@ INSERT INTO items (name, description, available, allows_milk_choice, allows_cust
 ('Mocha', '(12oz) Espresso with steamed milk and chocolate', false, true, true);
 
 INSERT INTO milk_options (name, available) VALUES
-('Whole Milk', true),
-('Oat Milk', true),
-('Almond Milk', true),
-('Soy Milk', false);
+('Whole', true),
+('Oat', true),
+('Almond', true),
+('Soy', false);
 
 INSERT INTO customization_options (name, type, available) VALUES
 ('Vanilla Syrup', 'syrup', true),
