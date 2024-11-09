@@ -25,7 +25,7 @@
   let justAddedItemId: number | null = null;
 
   onMount(async () => {
-    milkOptions = await getMilkOptions();
+    milkOptions = await getMilkOptions(true);
     customizationOptions = await getCustomizationOptions();
   });
 
@@ -150,10 +150,16 @@
                   <button
                     class="p-2 rounded-md text-center {selectedMilkOptionId === milk.id
                       ? 'bg-accent text-white'
-                      : 'bg-white text-gray-800 border border-gray-200'} hover:bg-primary"
-                    on:click={() => (selectedMilkOptionId = milk.id)}
+                      : milk.available
+                        ? 'bg-white text-gray-800 border border-gray-200 hover:bg-primary'
+                        : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'}"
+                    on:click={() => milk.available && (selectedMilkOptionId = milk.id)}
+                    disabled={!milk.available}
                   >
                     {milk.name}
+                    {#if !milk.available}
+                      <div class="text-xs">(unavailable)</div>
+                    {/if}
                   </button>
                 {/each}
               </div>

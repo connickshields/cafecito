@@ -55,36 +55,50 @@ export function isBaristaUser(user) {
 }
 
 // Retrieve menu items
-export async function getMenuItems() {
-  const { data, error } = await supabase
+export async function getMenuItems(includeUnavailable = false) {
+  let query = supabase
     .from('items')
     .select('*')
-    .eq('available', true)
     .order('name')
+    
+  if (!includeUnavailable) {
+    query = query.eq('available', true)
+  }
+
+  const { data, error } = await query
   
   if (error) throw error
   return data
 }
 
 // Retrieve milk options
-export async function getMilkOptions() {
-  const { data, error } = await supabase
+export async function getMilkOptions(includeUnavailable = false) {
+  let query =  supabase
     .from('milk_options')
     .select('*')
-    .eq('available', true)
     .order('name')
+
+  if (!includeUnavailable) {
+    query = query.eq('available', true)
+  }
   
+  const { data, error } = await query
   if (error) throw error
   return data
 }
 
 // Retrieve customization options
-export async function getCustomizationOptions() {
-  const { data, error } = await supabase
+export async function getCustomizationOptions(includeUnavailable = false) {
+  let query = supabase
     .from('customization_options')
     .select('*')
-    .eq('available', true)
     .order('name')
+  
+  if (!includeUnavailable) {
+    query = query.eq('available', true)
+  }
+  
+  const { data, error } = await query
   
   if (error) throw error
   return data
@@ -231,6 +245,37 @@ export async function updateOrderStatus(orderId, newStatus) {
     .update({ status: newStatus })
     .eq('id', orderId);
 
+  if (error) throw error;
+  return data;
+}
+
+// New functions to update availability
+export async function updateMilkAvailability(milkId, available) {
+  const { data, error } = await supabase
+    .from('milk_options')
+    .update({ available })
+    .eq('id', milkId);
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function updateItemAvailability(itemId, available) {
+  const { data, error } = await supabase
+    .from('items')
+    .update({ available })
+    .eq('id', itemId);
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function updateCustomizationAvailability(customizationId, available) {
+  const { data, error } = await supabase
+    .from('customization_options')
+    .update({ available })
+    .eq('id', customizationId);
+  
   if (error) throw error;
   return data;
 }
