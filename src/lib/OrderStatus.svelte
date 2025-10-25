@@ -12,6 +12,7 @@
   let intervalId: NodeJS.Timeout;
   let shouldShowOrderAgain = false;
   let ordersAhead: number | null = null;
+  let previousStatus: string | null = null;
 
   const statusMap = {
     pending: "Pending",
@@ -21,6 +22,16 @@
   };
 
   onMount(async () => {
+    // Request notification permission when the modal opens (gracefully ignore if unsupported)
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        try {
+          await Notification.requestPermission();
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
     await updateOrderDetails();
     intervalId = setInterval(updateOrderDetails, 5000);
   });
@@ -38,6 +49,32 @@
     }
     shouldShowOrderAgain =
       orderDetails?.status === "cancelled" || orderDetails?.status === "completed";
+
+    // Notify when the order transitions to completed
+    if (
+      previousStatus !== "completed" &&
+      orderDetails &&
+      orderDetails.status === "completed"
+    ) {
+      notifyOrderReady();
+    }
+    previousStatus = orderDetails ? orderDetails.status : null;
+  }
+
+  function notifyOrderReady() {
+    if (typeof window === "undefined") return;
+    if (!("Notification" in window)) return; // Unsupported
+    if (Notification.permission !== "granted") return; // Respect user choice
+
+    try {
+      // Use a tag to avoid duplicate stacking if the user reopens
+      new Notification("Your order is ready!", {
+        body: `Order #${orderId} is completed. Enjoy!`,
+        tag: `order-ready-${orderId}`,
+      });
+    } catch (e) {
+      // Swallow errors to avoid breaking UI
+    }
   }
 
   async function handleCancelOrder() {
