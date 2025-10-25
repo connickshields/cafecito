@@ -171,6 +171,7 @@ export async function getOrderDetails(orderId) {
     .select(`
       id,
       status,
+      created_at,
       customer_name,
       order_items (
         id,
@@ -190,6 +191,7 @@ export async function getOrderDetails(orderId) {
   return {
     id: data.id,
     status: data.status,
+    createdAt: data.created_at,
     customerName: data.customer_name,
     items: data.order_items.map(item => ({
       name: item.items.name,
@@ -258,6 +260,34 @@ export async function updateMilkAvailability(milkId, available) {
   
   if (error) throw error;
   return data;
+}
+
+// Count how many active orders (pending or in_progress) are ahead of the given order
+export async function getOrdersAheadCount(orderId) {
+  // Fetch the target order's created_at
+  const { data: target, error: targetError } = await supabase
+    .from('orders')
+    .select('id, created_at, status')
+    .eq('id', orderId)
+    .single();
+
+  if (targetError) throw targetError;
+
+  // If the order is completed/cancelled, there are no orders ahead
+  if (target.status === 'completed' || target.status === 'cancelled') {
+    return 0;
+  }
+
+  // Count orders created before this one that are still active
+  const { data: ahead, error: aheadError } = await supabase
+    .from('orders')
+    .select('id')
+    .in('status', ['pending', 'in_progress'])
+    .lt('created_at', target.created_at);
+
+  if (aheadError) throw aheadError;
+
+  return (ahead || []).length;
 }
 
 export async function updateItemAvailability(itemId, available) {
