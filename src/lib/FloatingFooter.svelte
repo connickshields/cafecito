@@ -21,9 +21,9 @@
   });
 </script>
 
-<div class="fixed bottom-0 left-0 right-0 bg-white shadow-lg p-4">
+<div class="fixed bottom-0 left-0 right-0 bg-parchment/85 backdrop-blur-md shadow-lg p-4 border-t border-amber-100">
   <div class="max-w-3xl mx-auto flex justify-between items-center">
-    <span class="text-lg font-semibold">
+    <span class="text-base font-body font-semibold text-espresso">
       {itemCount} item{itemCount !== 1 ? "s" : ""}
     </span>
     <div class="flex space-x-4">
@@ -31,7 +31,7 @@
         <div in:fly={{ y: 20, duration: 300 }} out:fade={{ duration: 200 }}>
           <button
             on:click={onViewCart}
-            class="bg-neutral text-white px-4 py-2 rounded-md hover:bg-background flex items-center"
+            class="border-2 border-background/40 text-espresso font-body font-semibold px-4 py-2 rounded-full hover:border-background flex items-center"
           >
             <span class="mr-2">
               <Icons name="cart" size={20} />
@@ -42,7 +42,7 @@
         <div in:fly={{ y: 20, duration: 300 }} out:fade={{ duration: 200 }}>
           <button
             on:click={onSubmitOrder}
-            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 flex items-center"
+            class="bg-primary text-espresso font-body font-semibold px-4 py-2 rounded-full hover:bg-accent flex items-center"
           >
             <span class="mr-2"><Icons name="coffee-cup" size={20} /></span>
             Submit Order
