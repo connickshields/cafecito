@@ -24,9 +24,9 @@
 </script>
 
 <div
-  class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center"
+  class="fixed inset-0 bg-espresso/60 overflow-y-auto h-full w-full flex items-center justify-center"
 >
-  <div class="bg-white p-8 rounded-lg shadow-xl w-96 relative">
+  <div class="bg-white p-8 rounded-2xl shadow-[0_8px_40px_rgba(44,24,16,0.2)] w-96 relative">
     <button
       on:click={handleClose}
       class="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
@@ -34,25 +34,25 @@
     >
       <Icons name="close" size={24} />
     </button>
-    <h2 class="text-2xl font-bold mb-4">Barista Login</h2>
+    <h2 class="text-2xl font-display font-semibold mb-4 text-espresso">Barista Login</h2>
     <form on:submit|preventDefault={handleSubmit} class="space-y-4">
       <input
         type="email"
         bind:value={email}
         placeholder="Email"
         required
-        class="w-full px-3 py-2 border border-gray-300 rounded-md"
+        class="w-full px-0 py-2 border-0 border-b border-neutral/40 bg-transparent focus:border-primary focus:outline-none text-espresso placeholder-neutral/50 font-body"
       />
       <input
         type="password"
         bind:value={password}
         placeholder="Password"
         required
-        class="w-full px-3 py-2 border border-gray-300 rounded-md"
+        class="w-full px-0 py-2 border-0 border-b border-neutral/40 bg-transparent focus:border-primary focus:outline-none text-espresso placeholder-neutral/50 font-body"
       />
       <button
         type="submit"
-        class="w-full bg-primary text-white py-2 rounded-md hover:bg-accent"
+        class="w-full bg-primary text-espresso font-body font-semibold py-2 rounded-full hover:bg-accent"
       >
         Sign In
       </button>
