@@ -72,35 +72,35 @@
   }
 </script>
 
-<div class="bg-white shadow rounded-lg p-6">
-  <h2 class="text-2xl font-bold mb-4">Menu</h2>
+<div class="p-4">
+  <h2 class="text-2xl font-display font-semibold mb-4 text-espresso">Menu</h2>
   <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
     {#each menuItems as item}
-      <li class="border rounded-lg p-4 relative">
+      <li class="bg-white rounded-2xl shadow-[0_2px_16px_rgba(44,24,16,0.08)] border border-amber-50 p-4 relative">
         <div class="flex flex-col h-full justify-between">
           <div>
             <div class="flex justify-between items-start">
-              <h3 class="text-lg font-semibold">{item.name}</h3>
+              <h3 class="text-base font-display font-semibold text-espresso">{item.name}</h3>
               {#if item.size !== null}
                 <span
-                  class="inline-block bg-gray-200 rounded-full px-2 py-1 text-xs text-gray-700 ml-2 mb-2"
+                  class="inline-block bg-secondary/60 rounded-full px-2 py-0.5 text-xs text-espresso ml-2 mb-2 font-body"
                   >{item.size}oz</span
                 >
               {/if}
             </div>
-            <p class="text-gray-600">{item.description}</p>
+            <p class="text-neutral text-sm font-body">{item.description}</p>
           </div>
           {#if !item.allows_milk_choice && !item.allows_customizations}
             <button
               on:click={() => handleAddToCart(item)}
-              class="mt-4 bg-primary text-white px-4 py-2 rounded-md hover:bg-accent"
+              class="mt-4 bg-primary text-espresso font-body font-semibold px-4 py-2 rounded-full hover:bg-accent"
             >
               Add to Cart
             </button>
           {:else}
             <button
               on:click={() => selectItem(item)}
-              class="mt-4 bg-primary text-white px-4 py-2 rounded-md hover:bg-accent flex items-center justify-center"
+              class="mt-4 bg-primary text-espresso font-body font-semibold px-4 py-2 rounded-full hover:bg-accent flex items-center justify-center"
             >
               Customize
             </button>
