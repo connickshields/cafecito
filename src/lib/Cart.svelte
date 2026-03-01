@@ -30,7 +30,7 @@
     <div
       class="bg-white shadow-lg rounded-t-lg p-6 max-h-[calc(80vh-4rem)] overflow-y-auto w-full max-w-3xl mx-auto"
     >
-      <h2 class="text-2xl font-bold mb-4">Your Cart</h2>
+      <h2 class="text-2xl font-display font-semibold mb-4 text-espresso">Your Cart</h2>
       {#if orderItems.length === 0}
         <p>Your cart is empty.</p>
       {:else}
@@ -39,12 +39,12 @@
             <li class="border-b pb-4">
               <div class="flex justify-between items-center">
                 <div>
-                  <h3 class="text-lg font-semibold">{item.name}</h3>
+                  <h3 class="text-base font-display font-semibold text-espresso">{item.name}</h3>
                   {#if item.milkOption}
-                    <p class="text-sm text-gray-600">Milk: {item.milkOption.name}</p>
+                    <p class="text-sm text-neutral font-body">Milk: {item.milkOption.name}</p>
                   {/if}
                   {#if item.customizations && item.customizations.length > 0}
-                    <p class="text-sm text-gray-600">
+                    <p class="text-sm text-neutral font-body">
                       Customizations: {item.customizations.map((c) => c.name).join(", ")}
                     </p>
                   {/if}
