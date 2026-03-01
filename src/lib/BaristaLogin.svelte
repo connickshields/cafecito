@@ -29,7 +29,7 @@
   <div class="bg-white p-8 rounded-2xl shadow-[0_8px_40px_rgba(44,24,16,0.2)] w-96 relative">
     <button
       on:click={handleClose}
-      class="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+      class="absolute top-2 right-2 text-espresso/50 hover:text-espresso"
       aria-label="Close"
     >
       <Icons name="close" size={24} />
