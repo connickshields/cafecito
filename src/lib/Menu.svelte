@@ -109,7 +109,7 @@
         {#if justAddedItemId === item.id}
           <div
             transition:fade={{ duration: 300 }}
-            class="absolute inset-0 bg-green-400 bg-opacity-80 flex items-center justify-center rounded-lg"
+            class="absolute inset-0 bg-green-400 bg-opacity-80 flex items-center justify-center rounded-2xl"
           >
             <div class="text-white text-center">
               <Icons name={"complete"} size={48} color="white" />
