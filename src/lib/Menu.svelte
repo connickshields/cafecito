@@ -129,30 +129,30 @@
     role="dialog"
     aria-modal="true"
   >
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+    <div class="fixed inset-0 bg-espresso/60 transition-opacity"></div>
 
     <div class="fixed inset-0 z-10 overflow-y-auto">
       <div class="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
         <div
-          class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all w-full max-w-lg mx-auto"
+          class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-[0_8px_40px_rgba(44,24,16,0.2)] transition-all w-full max-w-lg mx-auto"
         >
           <div
             class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 max-h-[80vh] overflow-y-auto"
           >
-            <h2 class="text-2xl font-bold mb-4">{selectedItem.name}</h2>
+            <h2 class="text-2xl font-display font-semibold mb-4 text-espresso">{selectedItem.name}</h2>
 
             {#if selectedItem.allows_milk_choice}
-              <h3 class="text-lg font-semibold mb-2">
+              <h3 class="text-sm font-body font-semibold mb-2 text-espresso uppercase tracking-wide">
                 Select Milk <span class="text-red-400">(required)</span>
               </h3>
               <div class="grid grid-cols-3 gap-2 mb-4">
                 {#each milkOptions as milk}
                   <button
-                    class="p-2 rounded-md text-center {selectedMilkOptionId === milk.id
-                      ? 'bg-accent text-white'
+                    class="p-2 rounded-xl text-sm font-body text-center {selectedMilkOptionId === milk.id
+                      ? 'bg-primary text-espresso border-2 border-primary font-semibold'
                       : milk.available
-                        ? 'bg-white text-gray-800 border border-gray-200 hover:bg-primary'
-                        : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'}"
+                        ? 'bg-white text-espresso border border-neutral/30 hover:bg-parchment'
+                        : 'bg-parchment text-neutral/50 border border-neutral/20 cursor-not-allowed'}"
                     on:click={() => milk.available && (selectedMilkOptionId = milk.id)}
                     disabled={!milk.available}
                   >
@@ -166,7 +166,7 @@
             {/if}
 
             {#if selectedItem.allows_customizations}
-              <h3 class="text-lg font-semibold mb-2">Customizations</h3>
+              <h3 class="text-sm font-body font-semibold mb-2 text-espresso uppercase tracking-wide">Customizations</h3>
               <div class="space-y-2 mb-4">
                 {#each customizationOptions as customization}
                   <label class="flex items-center">
@@ -182,11 +182,11 @@
               </div>
             {/if}
           </div>
-          <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+          <div class="bg-parchment px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
             <button
               type="button"
               on:click={() => handleAddToCart(selectedItem, true)}
-              class="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent sm:ml-3 sm:w-auto"
+              class="inline-flex w-full justify-center rounded-full bg-primary px-4 py-2 text-sm font-body font-semibold text-espresso shadow-sm hover:bg-accent disabled:opacity-40 sm:ml-3 sm:w-auto"
               disabled={selectedItem.allows_milk_choice && selectedMilkOptionId === null}
             >
               Add to Cart
@@ -194,7 +194,7 @@
             <button
               type="button"
               on:click={() => (selectedItem = null)}
-              class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+              class="mt-3 inline-flex w-full justify-center rounded-full bg-transparent px-4 py-2 text-sm font-body font-semibold text-espresso border-2 border-background/30 hover:border-background sm:mt-0 sm:w-auto"
             >
               Cancel
             </button>
