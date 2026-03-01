@@ -52,14 +52,14 @@
                 <div class="flex items-center">
                   <button
                     on:click={() => updateQuantity(item.tempId, item.quantity - 1)}
-                    class="text-gray-500 hover:text-gray-700"
+                    class="text-neutral hover:text-espresso"
                   >
                     -
                   </button>
                   <span class="mx-2">{item.quantity}</span>
                   <button
                     on:click={() => updateQuantity(item.tempId, item.quantity + 1)}
-                    class="text-gray-500 hover:text-gray-700"
+                    class="text-neutral hover:text-espresso"
                   >
                     +
                   </button>

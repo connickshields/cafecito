@@ -93,15 +93,15 @@
   </div>
 {:else}
   <div
-    class="min-h-screen bg-gray-100 flex flex-col"
+    class="min-h-screen bg-parchment flex flex-col"
     in:fly={{ y: 200, duration: 300 }}
     out:fly={{ y: -200, duration: 300 }}
   >
-    <header class="bg-white shadow">
+    <header class="bg-parchment border-b border-amber-100">
       <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-center">
         <h1
-          class="text-6xl font-bold text-primary font-display yesteryear-regular"
-          style="-webkit-text-stroke: 8px #424B54; paint-order: stroke fill;"
+          class="text-6xl font-bold text-primary yesteryear-regular"
+          style="-webkit-text-stroke: 6px #2C1810; paint-order: stroke fill;"
         >
           Cafecito
         </h1>
@@ -113,7 +113,7 @@
           <p class="text-center">Loading menu items...</p>
         {:else}
           <div class="space-y-8">
-            <h2 class="text-3xl font-bold mb-4 text-center">
+            <h2 class="text-3xl font-display font-semibold mb-4 text-center text-espresso">
               <span>Welcome, {customerName}!</span>
             </h2>
             <Menu {menuItems} {addToOrder} on:closeCart={() => (showCart = false)} />
