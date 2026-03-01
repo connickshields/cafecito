@@ -134,10 +134,10 @@
             <li>
               {item.name} x {item.quantity}
               {#if item.milkOption}
-                <span class="text-sm text-gray-600">({item.milkOption})</span>
+                <span class="text-sm text-neutral font-body">({item.milkOption})</span>
               {/if}
               {#if item.customizations && item.customizations.length > 0}
-                <span class="text-sm text-gray-600">
+                <span class="text-sm text-neutral font-body">
                   ({item.customizations.join(", ")})
                 </span>
               {/if}
