@@ -86,21 +86,21 @@
 </script>
 
 <div
-  class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center"
+  class="fixed inset-0 bg-espresso/60 overflow-y-auto h-full w-full flex items-center justify-center"
 >
-  <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
-    <h2 class="text-2xl font-bold mb-4">Order Status</h2>
-    <p class="mb-4">Thank you for your order, {orderDetails?.customerName}!</p>
+  <div class="bg-white p-8 rounded-2xl shadow-[0_8px_40px_rgba(44,24,16,0.2)] w-full max-w-md mx-4">
+    <h2 class="text-2xl font-display font-semibold mb-4 text-espresso">Order Status</h2>
+    <p class="mb-4 font-body text-espresso">Thank you, {orderDetails?.customerName}!</p>
     {#if orderDetails}
       <div class="mb-6">
         <div class="flex flex-col items-center justify-center mb-2">
           <span
-            class="text-lg font-semibold inline-block py-1 px-3 mb-4 rounded-full text-white bg-background"
+            class="text-xs font-body font-semibold inline-block py-1 px-4 mb-4 rounded-full text-parchment bg-background uppercase tracking-wider"
           >
             {statusMap[orderDetails.status]}
           </span>
           {#if ordersAhead !== null && (orderDetails.status === "pending" || orderDetails.status === "in_progress")}
-            <p class="text-sm text-gray-600 mb-2">
+            <p class="text-sm text-neutral font-body mb-2">
               {ordersAhead === 0
                 ? "You're up next!"
                 : `${ordersAhead} order${ordersAhead === 1 ? "" : "s"} ahead of you`}
@@ -128,7 +128,7 @@
         </div>
       </div>
       <div class="mb-4">
-        <h3 class="text-xl font-semibold mb-2">Order Details:</h3>
+        <h3 class="text-base font-display font-semibold mb-2 text-espresso">Order Details</h3>
         <ul class="list-disc pl-5">
           {#each orderDetails.items as item}
             <li>
@@ -148,7 +148,7 @@
       {#if orderDetails.status === "pending"}
         <button
           on:click={handleCancelOrder}
-          class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mb-4"
+          class="bg-red-500 text-white font-body font-semibold px-4 py-2 rounded-full hover:bg-red-600 mb-4"
         >
           Cancel Order
         </button>
@@ -159,7 +159,7 @@
     {#if shouldShowOrderAgain}
       <button
         on:click={onClose}
-        class="bg-primary text-white px-4 py-2 rounded-md hover:bg-accent"
+        class="bg-primary text-espresso font-body font-semibold px-4 py-2 rounded-full hover:bg-accent"
       >
         Order Again
       </button>
