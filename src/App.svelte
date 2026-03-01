@@ -54,7 +54,7 @@
         <header class="bg-parchment border-b border-amber-100">
           <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-center">
             <h1
-              class="text-6xl font-bold text-primary font-display yesteryear-regular"
+              class="text-6xl font-bold text-primary yesteryear-regular"
               style="-webkit-text-stroke: 6px #2C1810; paint-order: stroke fill;"
             >
               Cafecito
