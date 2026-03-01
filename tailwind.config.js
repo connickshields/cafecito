@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['Playfair Display', 'serif'],
-        body: ['Lato', 'sans-serif'],
+        display: ['Cormorant Garamond', 'serif'],
+        body: ['Nunito', 'sans-serif'],
       },
       colors: {
         primary: '#FFCF33',
@@ -13,6 +13,8 @@ export default {
         accent: '#F5BC00',
         background: '#424B54',
         neutral: '#93A8AC',
+        parchment: '#FBF7F0',
+        espresso: '#2C1810',
       },
     },
   },
