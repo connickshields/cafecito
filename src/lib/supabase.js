@@ -264,30 +264,9 @@ export async function updateMilkAvailability(milkId, available) {
 
 // Count how many active orders (pending or in_progress) are ahead of the given order
 export async function getOrdersAheadCount(orderId) {
-  // Fetch the target order's created_at
-  const { data: target, error: targetError } = await supabase
-    .from('orders')
-    .select('id, created_at, status')
-    .eq('id', orderId)
-    .single();
-
-  if (targetError) throw targetError;
-
-  // If the order is completed/cancelled, there are no orders ahead
-  if (target.status === 'completed' || target.status === 'cancelled') {
-    return 0;
-  }
-
-  // Count orders created before this one that are still active
-  const { data: ahead, error: aheadError } = await supabase
-    .from('orders')
-    .select('id')
-    .in('status', ['pending', 'in_progress'])
-    .lt('created_at', target.created_at);
-
-  if (aheadError) throw aheadError;
-
-  return (ahead || []).length;
+  const { data, error } = await supabase.rpc('get_orders_ahead_count', { order_id: orderId })
+  if (error) throw error
+  return data
 }
 
 export async function updateItemAvailability(itemId, available) {
@@ -298,6 +277,12 @@ export async function updateItemAvailability(itemId, available) {
   
   if (error) throw error;
   return data;
+}
+
+export async function getAverageFulfillmentTime() {
+  const { data, error } = await supabase.rpc('get_average_fulfillment_time')
+  if (error) throw error
+  return data
 }
 
 export async function updateCustomizationAvailability(customizationId, available) {

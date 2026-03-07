@@ -127,3 +127,33 @@ CREATE TRIGGER update_order_item_customizations_modtime
     BEFORE UPDATE ON order_item_customizations
     FOR EACH ROW
     EXECUTE FUNCTION update_modified_column();
+
+-- Returns count of active orders ahead of the given order, bypassing RLS so customers see the global queue.
+CREATE OR REPLACE FUNCTION get_orders_ahead_count(order_id integer)
+RETURNS integer
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT
+    CASE
+      WHEN (SELECT status FROM orders WHERE id = order_id) IN ('completed', 'cancelled') THEN 0
+      ELSE (
+        SELECT COUNT(*)::integer
+        FROM orders
+        WHERE status IN ('pending', 'in_progress')
+        AND created_at < (SELECT created_at FROM orders WHERE id = order_id)
+      )
+    END;
+$$;
+
+-- Returns average order fulfillment time in milliseconds across all completed orders.
+-- SECURITY DEFINER bypasses RLS so all users get the global average, not just their own orders.
+CREATE OR REPLACE FUNCTION get_average_fulfillment_time()
+RETURNS float
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) * 1000)
+  FROM orders
+  WHERE status = 'completed';
+$$;

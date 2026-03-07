@@ -11,6 +11,7 @@
     updateMilkAvailability,
     updateItemAvailability,
     updateCustomizationAvailability,
+    getAverageFulfillmentTime,
   } from "./supabase";
   import type { Order } from "../types";
   import Icons from "./Icons.svelte";
@@ -70,21 +71,8 @@
     // Calculate statistics
     completedOrders = orders.filter((order) => order.status === "completed").length;
 
-    const completedOrderTimes = orders
-      .filter((order) => order.status === "completed")
-      .map(
-        (order) =>
-          new Date(order.updated_at).getTime() - new Date(order.created_at).getTime()
-      );
-
-    if (completedOrderTimes.length > 0) {
-      const avgTime =
-        completedOrderTimes.reduce((sum, time) => sum + time, 0) /
-        completedOrderTimes.length;
-      averageFulfillmentTime = formatDuration(avgTime);
-    } else {
-      averageFulfillmentTime = "N/A";
-    }
+    const avgTime = await getAverageFulfillmentTime();
+    averageFulfillmentTime = avgTime !== null ? formatDuration(avgTime) : "N/A";
   }
 
   function formatDuration(ms: number): string {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { fade } from "svelte/transition";
-  import { cancelOrder, getOrderDetails, getOrdersAheadCount } from "./supabase";
+  import { cancelOrder, getOrderDetails, getOrdersAheadCount, getAverageFulfillmentTime } from "./supabase";
   import type { OrderDetails } from "../types";
   import Icons from "./Icons.svelte";
 
@@ -13,6 +13,7 @@
   let shouldShowOrderAgain = false;
   let ordersAhead: number | null = null;
   let previousStatus: string | null = null;
+  let avgFulfillmentMs: number | null = null;
 
   const statusMap = {
     pending: "Pending",
@@ -34,6 +35,13 @@
     }
     await updateOrderDetails();
     intervalId = setInterval(updateOrderDetails, 5000);
+    try {
+      avgFulfillmentMs = await getAverageFulfillmentTime();
+      console.log("avgFulfillmentMs", avgFulfillmentMs);
+    } catch (e) {
+      console.error("getAverageFulfillmentTime error", e);
+      avgFulfillmentMs = null;
+    }
   });
 
   onDestroy(() => {
@@ -77,6 +85,12 @@
     }
   }
 
+  function formatDuration(ms: number): string {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}m ${seconds}s`;
+  }
+
   async function handleCancelOrder() {
     if (orderDetails && orderDetails.status === "pending") {
       await cancelOrder(orderId);
@@ -100,11 +114,14 @@
             {statusMap[orderDetails.status]}
           </span>
           {#if ordersAhead !== null && (orderDetails.status === "pending" || orderDetails.status === "in_progress")}
-            <p class="text-sm text-gray-600 mb-2">
+            <p class="text-sm text-gray-600 mb-1">
               {ordersAhead === 0
                 ? "You're up next!"
                 : `${ordersAhead} order${ordersAhead === 1 ? "" : "s"} ahead of you`}
             </p>
+            {#if avgFulfillmentMs !== null}
+              <p class="text-sm text-gray-500 mb-2">Est. wait: ~{formatDuration(avgFulfillmentMs)}</p>
+            {/if}
           {/if}
           <div class="w-48 h-48 flex items-center justify-center">
             {#if orderDetails.status === "pending"}
