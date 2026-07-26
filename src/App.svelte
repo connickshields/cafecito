@@ -22,13 +22,15 @@
     const {
       data: { session },
     } = await supabase.auth.getSession();
+    let activeSession = session;
     if (session) {
       userSession.set(session);
     } else {
-      await signInAnonymously();
+      const data = await signInAnonymously();
+      activeSession = data.session;
     }
 
-    const user = session?.user;
+    const user = activeSession?.user;
     if (user && !isBaristaUser(user)) {
       try {
         const active = await getActiveOrder();
