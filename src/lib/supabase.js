@@ -104,54 +104,22 @@ export async function getCustomizationOptions(includeUnavailable = false) {
   return data
 }
 
-// Submit an order
-export async function submitOrder(userId, customerName, orderItems) {
-  // Start a Supabase transaction
-  const { data: order, error: orderError } = await supabase
-    .from('orders')
-    .insert({
-      user_id: userId,
-      customer_name: customerName,
-      status: 'pending'
-    })
-    .select()
-    .single();
+// Submit an order atomically via the create_order RPC
+export async function submitOrder(customerName, orderItems) {
+  const items = orderItems.map((item) => ({
+    item_id: item.itemId,
+    milk_option_id: item.milkOption?.id ?? null,
+    quantity: item.quantity,
+    customization_option_ids: (item.customizations ?? []).map((c) => c.id),
+  }))
 
-  if (orderError) throw orderError;
+  const { data, error } = await supabase.rpc('create_order', {
+    p_customer_name: customerName,
+    p_items: items,
+  })
 
-  const orderId = order.id;
-
-  for (const item of orderItems) {
-    // Insert order item
-    const { data: orderItem, error: orderItemError } = await supabase
-      .from('order_items')
-      .insert({
-        order_id: orderId,
-        item_id: item.itemId, // Use itemId instead of id
-        milk_option_id: item.milkOption?.id,
-        quantity: item.quantity
-      })
-      .select()
-      .single();
-
-    if (orderItemError) throw orderItemError;
-
-    // Insert customizations if any
-    if (item.customizations && item.customizations.length > 0) {
-      const customizationsToInsert = item.customizations.map(customization => ({
-        order_item_id: orderItem.id,
-        customization_option_id: customization.id
-      }));
-
-      const { error: customizationError } = await supabase
-        .from('order_item_customizations')
-        .insert(customizationsToInsert);
-
-      if (customizationError) throw customizationError;
-    }
-  }
-
-  return { orderId: orderId };
+  if (error) throw error
+  return { orderId: data }
 }
 
 export async function cancelOrder(orderId) {
@@ -262,32 +230,31 @@ export async function updateMilkAvailability(milkId, available) {
   return data;
 }
 
-// Count how many active orders (pending or in_progress) are ahead of the given order
-export async function getOrdersAheadCount(orderId) {
-  // Fetch the target order's created_at
-  const { data: target, error: targetError } = await supabase
-    .from('orders')
-    .select('id, created_at, status')
-    .eq('id', orderId)
-    .single();
-
-  if (targetError) throw targetError;
-
-  // If the order is completed/cancelled, there are no orders ahead
-  if (target.status === 'completed' || target.status === 'cancelled') {
-    return 0;
+// Aggregate queue numbers (drinks ahead, active orders, recent drain rate).
+// Without orderId: the whole active queue, for the pre-order banner.
+export async function getQueueStats(orderId = null) {
+  const { data, error } = await supabase.rpc('get_queue_stats', { p_order_id: orderId })
+  if (error) throw error
+  const row = Array.isArray(data) ? data[0] : data
+  return {
+    drinksAhead: row?.drinks_ahead ?? 0,
+    activeOrders: row?.active_orders ?? 0,
+    estMinsPerDrink: row?.est_mins_per_drink == null ? null : Number(row.est_mins_per_drink),
   }
+}
 
-  // Count orders created before this one that are still active
-  const { data: ahead, error: aheadError } = await supabase
+// The current session's own active order, if any (own-orders RLS applies)
+export async function getActiveOrder() {
+  const { data, error } = await supabase
     .from('orders')
-    .select('id')
+    .select('id, customer_name, status')
     .in('status', ['pending', 'in_progress'])
-    .lt('created_at', target.created_at);
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
-  if (aheadError) throw aheadError;
-
-  return (ahead || []).length;
+  if (error) throw error
+  return data
 }
 
 export async function updateItemAvailability(itemId, available) {

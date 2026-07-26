@@ -69,7 +69,7 @@
   async function handleSubmitOrder() {
     if (orderItems.length > 0 && $userSession) {
       try {
-        const result = await submitOrder($userSession.user.id, customerName, orderItems);
+        const result = await submitOrder(customerName, orderItems);
         currentOrderId = result.orderId;
         showOrderStatus = true;
         orderItems = [];

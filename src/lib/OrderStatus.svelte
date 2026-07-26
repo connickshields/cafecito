@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { fade } from "svelte/transition";
-  import { cancelOrder, getOrderDetails, getOrdersAheadCount } from "./supabase";
+  import { cancelOrder, getOrderDetails, getQueueStats } from "./supabase";
   import type { OrderDetails } from "../types";
   import Icons from "./Icons.svelte";
 
@@ -11,7 +11,7 @@
   let orderDetails: OrderDetails | null = null;
   let intervalId: NodeJS.Timeout;
   let shouldShowOrderAgain = false;
-  let ordersAhead: number | null = null;
+  let queueStats: { drinksAhead: number; activeOrders: number; estMinsPerDrink: number | null } | null = null;
   let previousStatus: string | null = null;
 
   const statusMap = {
@@ -43,9 +43,9 @@
   async function updateOrderDetails() {
     orderDetails = await getOrderDetails(orderId);
     try {
-      ordersAhead = await getOrdersAheadCount(orderId);
+      queueStats = await getQueueStats(orderId);
     } catch (e) {
-      ordersAhead = null;
+      queueStats = null;
     }
     shouldShowOrderAgain =
       orderDetails?.status === "cancelled" || orderDetails?.status === "completed";
@@ -99,11 +99,11 @@
           >
             {statusMap[orderDetails.status]}
           </span>
-          {#if ordersAhead !== null && (orderDetails.status === "pending" || orderDetails.status === "in_progress")}
+          {#if queueStats !== null && (orderDetails.status === "pending" || orderDetails.status === "in_progress")}
             <p class="text-sm text-gray-600 mb-2">
-              {ordersAhead === 0
+              {queueStats.drinksAhead === 0
                 ? "You're up next!"
-                : `${ordersAhead} order${ordersAhead === 1 ? "" : "s"} ahead of you`}
+                : `${queueStats.drinksAhead} drink${queueStats.drinksAhead === 1 ? "" : "s"} ahead of you`}
             </p>
           {/if}
           <div class="w-48 h-48 flex items-center justify-center">
