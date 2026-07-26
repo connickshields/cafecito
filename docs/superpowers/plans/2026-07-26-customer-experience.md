@@ -460,24 +460,31 @@ git commit -m "feat: restore active order and remembered name across refresh"
 ### Task 5: Wait estimate on the order status screen
 
 **Files:**
+- Create: `src/lib/waitEstimate.js`
 - Modify: `src/lib/OrderStatus.svelte` (estimate line under the queue-position line from Task 2)
 
 **Interfaces:**
 - Consumes: `queueStats` state from Task 2 (`{drinksAhead, activeOrders, estMinsPerDrink|null}`).
-- Produces: `waitRange(drinks, rate) → {low, high}|null` helper, reused verbatim in Task 7.
+- Produces: `waitRange(drinks, rate) → {low, high}|null` exported from `src/lib/waitEstimate.js`, imported by Task 7.
 
-- [ ] **Step 1: Add the range computation to the script**
+- [ ] **Step 1: Create `src/lib/waitEstimate.js`**
 
 ```js
 // ±25% around drinks × recent minutes-per-drink, whole minutes, floor 1–2
-function waitRange(drinks: number, rate: number | null): { low: number; high: number } | null {
-  if (rate === null || drinks <= 0) return null;
-  const mins = drinks * rate;
+export function waitRange(drinks, rate) {
+  if (rate === null || drinks <= 0) return null
+  const mins = drinks * rate
   return {
     low: Math.max(1, Math.round(mins * 0.75)),
     high: Math.max(2, Math.round(mins * 1.25)),
-  };
+  }
 }
+```
+
+In `OrderStatus.svelte`:
+
+```js
+import { waitRange } from "./waitEstimate";
 
 $: estRange = queueStats ? waitRange(queueStats.drinksAhead, queueStats.estMinsPerDrink) : null;
 ```
@@ -618,7 +625,7 @@ git commit -m "feat: green ready screen with chime on order completion"
 - Modify: `src/lib/CustomerView.svelte` (page-level poll, banner markup)
 
 **Interfaces:**
-- Consumes: `getQueueStats()` (no argument) and `getMenuItems()` from `src/lib/supabase.js`; the `waitRange` logic from Task 5 (copied locally — it is 8 lines; keeping components self-contained beats a shared util for now).
+- Consumes: `getQueueStats()` (no argument) and `getMenuItems()` from `src/lib/supabase.js`; `waitRange` from `src/lib/waitEstimate.js` (Task 5).
 - Produces: nothing later tasks use.
 
 - [ ] **Step 1: Add the poll to `CustomerView.svelte`**
@@ -654,17 +661,10 @@ async function refreshPageData() {
   }
 }
 
-function waitRange(drinks: number, rate: number | null): { low: number; high: number } | null {
-  if (rate === null || drinks <= 0) return null;
-  const mins = drinks * rate;
-  return {
-    low: Math.max(1, Math.round(mins * 0.75)),
-    high: Math.max(2, Math.round(mins * 1.25)),
-  };
-}
-
 $: bannerRange = queueDepth ? waitRange(queueDepth.drinksAhead, queueDepth.estMinsPerDrink) : null;
 ```
+
+Add to the imports: `import { waitRange } from "./waitEstimate";`
 
 (This replaces the existing bare `onMount`; the original two lines move inside it.)
 
