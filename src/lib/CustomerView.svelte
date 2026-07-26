@@ -16,6 +16,8 @@
   let showCart = false;
   let showOrderStatus = false;
   let currentOrderId: number | null = null;
+  let submitting = false;
+  let submitError = false;
 
   onMount(async () => {
     menuItems = await getMenuItems();
@@ -67,15 +69,19 @@
   }
 
   async function handleSubmitOrder() {
-    if (orderItems.length > 0 && $userSession) {
-      try {
-        const result = await submitOrder(customerName, orderItems);
-        currentOrderId = result.orderId;
-        showOrderStatus = true;
-        orderItems = [];
-      } catch (error) {
-        console.error("Error submitting order:", error);
-      }
+    if (orderItems.length === 0 || !$userSession || submitting) return;
+    submitting = true;
+    submitError = false;
+    try {
+      const result = await submitOrder(customerName, orderItems);
+      currentOrderId = result.orderId;
+      showOrderStatus = true;
+      orderItems = [];
+    } catch (error) {
+      console.error("Error submitting order:", error);
+      submitError = true;
+    } finally {
+      submitting = false;
     }
   }
 
@@ -85,6 +91,9 @@
   }
 
   $: itemCount = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Any cart change clears the error banner
+  $: if (orderItems) submitError = false;
 </script>
 
 {#if showOrderStatus && currentOrderId}
@@ -127,9 +136,19 @@
         {/if}
       </div>
     </main>
+    {#if submitError}
+      <div class="fixed bottom-20 left-0 right-0 px-4 z-10" transition:fade>
+        <div
+          class="max-w-3xl mx-auto bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-md text-center"
+        >
+          Couldn't send your order — check your connection and try again
+        </div>
+      </div>
+    {/if}
     <FloatingFooter
       {itemCount}
       {showCart}
+      {submitting}
       onViewCart={toggleCart}
       onSubmitOrder={handleSubmitOrder}
     />
