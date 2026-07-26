@@ -9,13 +9,14 @@
   import type { MenuItem, OrderItem } from "../types";
 
   export let customerName: string;
+  export let initialOrderId: number | null = null;
 
   let orderItems: OrderItem[] = [];
   let menuItems: MenuItem[] = [];
   let loading = true;
   let showCart = false;
-  let showOrderStatus = false;
-  let currentOrderId: number | null = null;
+  let showOrderStatus = initialOrderId !== null;
+  let currentOrderId: number | null = initialOrderId;
   let submitting = false;
   let submitError = false;
 
