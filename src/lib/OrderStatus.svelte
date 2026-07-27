@@ -25,17 +25,20 @@
   };
 
   onMount(async () => {
-    // Request notification permission when the modal opens (gracefully ignore if unsupported)
+    // Request notification permission when the modal opens (gracefully ignore if unsupported).
+    // Fire-and-forget: do not block the first fetch/poll on the user answering the prompt.
     if (typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission === "default") {
-        try {
-          await Notification.requestPermission();
-        } catch (e) {
+        Notification.requestPermission().catch(() => {
           // ignore
-        }
+        });
       }
     }
-    await updateOrderDetails();
+    try {
+      await updateOrderDetails();
+    } catch (e) {
+      // ignore - the poll below will retry
+    }
     intervalId = setInterval(updateOrderDetails, 5000);
   });
 
@@ -44,7 +47,11 @@
   });
 
   async function updateOrderDetails() {
-    orderDetails = await getOrderDetails(orderId);
+    try {
+      orderDetails = await getOrderDetails(orderId);
+    } catch (e) {
+      // leave orderDetails unchanged on failure so a mid-session blip doesn't crash the poll
+    }
     try {
       queueStats = await getQueueStats(orderId);
     } catch (e) {
@@ -105,8 +112,8 @@
     ? 'bg-green-500 text-white'
     : 'bg-white'}">
     <h2 class="text-2xl font-bold mb-4">Order Status</h2>
-    <p class="mb-4">Thank you for your order, {orderDetails?.customerName}!</p>
     {#if orderDetails}
+      <p class="mb-4">Thank you for your order, {orderDetails.customerName}!</p>
       <div class="mb-6">
         <div class="flex flex-col items-center justify-center mb-2">
           <span
@@ -126,7 +133,7 @@
               </p>
             {/if}
           {/if}
-          <div class="w-48 h-48 flex items-center justify-center">
+          <div class="w-48 {orderDetails.status === 'completed' ? 'h-auto' : 'h-48'} flex items-center justify-center">
             {#if orderDetails.status === "pending"}
               <div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }}>
                 <Icons name="pending" size={250} color="#FFCF33" />

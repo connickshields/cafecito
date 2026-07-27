@@ -59,6 +59,7 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION get_queue_stats(integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION get_queue_stats(integer) TO authenticated;
 
 -- Atomic order creation: order + items + customizations in one transaction.
@@ -84,6 +85,10 @@ BEGIN
     RETURNING id INTO v_order_id;
 
     FOR v_item IN SELECT * FROM jsonb_array_elements(p_items) LOOP
+        IF v_item->>'item_id' IS NULL THEN
+            RAISE EXCEPTION 'Order item missing item_id';
+        END IF;
+
         INSERT INTO order_items (order_id, item_id, milk_option_id, quantity)
         VALUES (
             v_order_id,
@@ -103,4 +108,5 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION create_order(text, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION create_order(text, jsonb) TO authenticated;
