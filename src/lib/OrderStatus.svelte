@@ -60,6 +60,7 @@
       orderDetails.status === "completed"
     ) {
       notifyOrderReady();
+      playReadyChime();
     }
     previousStatus = orderDetails ? orderDetails.status : null;
   }
@@ -80,6 +81,15 @@
     }
   }
 
+  function playReadyChime() {
+    try {
+      const audio = new Audio("/assets/sounds/order-ready.wav");
+      audio.play().catch(() => {}); // iOS silent switch / backgrounded tab: visual carries it
+    } catch (e) {
+      // ignore
+    }
+  }
+
   async function handleCancelOrder() {
     if (orderDetails && orderDetails.status === "pending") {
       await cancelOrder(orderId);
@@ -91,7 +101,9 @@
 <div
   class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center"
 >
-  <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+  <div class="p-8 rounded-lg shadow-xl w-full max-w-md {orderDetails?.status === 'completed'
+    ? 'bg-green-500 text-white'
+    : 'bg-white'}">
     <h2 class="text-2xl font-bold mb-4">Order Status</h2>
     <p class="mb-4">Thank you for your order, {orderDetails?.customerName}!</p>
     {#if orderDetails}
@@ -124,8 +136,11 @@
                 <Icons name="stylized-cup" size={200} color="#FFCF33" />
               </div>
             {:else if orderDetails.status === "completed"}
-              <div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }}>
-                <Icons name="complete" size={200} color="#FFCF33" />
+              <div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }} class="text-center">
+                <p class="text-4xl font-bold">{orderDetails.customerName}</p>
+                <p class="text-2xl mb-2">Order #{orderDetails.id}</p>
+                <Icons name="complete" size={140} color="white" />
+                <p class="text-3xl font-bold mt-2">Ready!</p>
               </div>
             {:else if orderDetails.status === "cancelled"}
               <div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }}>
@@ -142,10 +157,10 @@
             <li>
               {item.name} x {item.quantity}
               {#if item.milkOption}
-                <span class="text-sm text-gray-600">({item.milkOption})</span>
+                <span class="text-sm {orderDetails.status === 'completed' ? 'text-green-100' : 'text-gray-600'}">({item.milkOption})</span>
               {/if}
               {#if item.customizations && item.customizations.length > 0}
-                <span class="text-sm text-gray-600">
+                <span class="text-sm {orderDetails.status === 'completed' ? 'text-green-100' : 'text-gray-600'}">
                   ({item.customizations.join(", ")})
                 </span>
               {/if}
