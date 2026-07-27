@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { fade, fly } from "svelte/transition";
   import Menu from "./Menu.svelte";
   import Cart from "./Cart.svelte";
   import FloatingFooter from "./FloatingFooter.svelte";
   import OrderStatus from "./OrderStatus.svelte";
-  import { userSession, getMenuItems, submitOrder } from "./supabase";
+  import { userSession, getMenuItems, submitOrder, getQueueStats } from "./supabase";
+  import { waitRange } from "./waitEstimate";
   import type { MenuItem, OrderItem } from "../types";
 
   export let customerName: string;
@@ -19,11 +20,33 @@
   let currentOrderId: number | null = initialOrderId;
   let submitting = false;
   let submitError = false;
+  let queueDepth: { drinksAhead: number; activeOrders: number; estMinsPerDrink: number | null } | null = null;
+  let pollId: NodeJS.Timeout;
 
   onMount(async () => {
     menuItems = await getMenuItems();
     loading = false;
+    await refreshPageData();
+    pollId = setInterval(refreshPageData, 5000);
   });
+
+  onDestroy(() => {
+    clearInterval(pollId);
+  });
+
+  async function refreshPageData() {
+    if (showOrderStatus) return; // status screen has its own poll
+    try {
+      menuItems = await getMenuItems();
+    } catch (e) {
+      // keep last known menu
+    }
+    try {
+      queueDepth = await getQueueStats();
+    } catch (e) {
+      queueDepth = null; // hide banner rather than show stale numbers
+    }
+  }
 
   function addToOrder(item: MenuItem, milkOption, customizations) {
     const newItem: OrderItem = {
@@ -91,6 +114,8 @@
     currentOrderId = null;
   }
 
+  $: bannerRange = queueDepth ? waitRange(queueDepth.drinksAhead, queueDepth.estMinsPerDrink) : null;
+
   $: itemCount = orderItems.reduce((sum, item) => sum + item.quantity, 0);
 
   // Any cart change clears the error banner
@@ -126,6 +151,15 @@
             <h2 class="text-3xl font-bold mb-4 text-center">
               <span>Welcome, {customerName}!</span>
             </h2>
+            {#if queueDepth && queueDepth.drinksAhead > 0}
+              <div
+                transition:fade
+                class="bg-white border rounded-md px-4 py-2 text-center text-gray-700 shadow-sm"
+              >
+                Current queue: {queueDepth.drinksAhead} drink{queueDepth.drinksAhead === 1 ? "" : "s"}
+                {#if bannerRange}&nbsp;· ~{bannerRange.low}–{bannerRange.high} min wait{/if}
+              </div>
+            {/if}
             <Menu {menuItems} {addToOrder} on:closeCart={() => (showCart = false)} />
             <Cart
               {orderItems}
