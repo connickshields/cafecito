@@ -4,6 +4,7 @@
   import { cancelOrder, getOrderDetails, getQueueStats } from "./supabase";
   import type { OrderDetails } from "../types";
   import Icons from "./Icons.svelte";
+  import { waitRange } from "./waitEstimate";
 
   export let orderId: number;
   export let onClose: () => void;
@@ -13,6 +14,8 @@
   let shouldShowOrderAgain = false;
   let queueStats: { drinksAhead: number; activeOrders: number; estMinsPerDrink: number | null } | null = null;
   let previousStatus: string | null = null;
+
+  $: estRange = queueStats ? waitRange(queueStats.drinksAhead, queueStats.estMinsPerDrink) : null;
 
   const statusMap = {
     pending: "Pending",
@@ -105,6 +108,11 @@
                 ? "You're up next!"
                 : `${queueStats.drinksAhead} drink${queueStats.drinksAhead === 1 ? "" : "s"} ahead of you`}
             </p>
+            {#if estRange}
+              <p class="text-sm text-gray-600 mb-2">
+                Estimated wait: {estRange.low}–{estRange.high} min
+              </p>
+            {/if}
           {/if}
           <div class="w-48 h-48 flex items-center justify-center">
             {#if orderDetails.status === "pending"}
