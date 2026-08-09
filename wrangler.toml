@@ -15,4 +15,4 @@ migrations_dir = "migrations"
 
 [vars]
 ACCESS_TEAM_DOMAIN = "yourteam.cloudflareaccess.com"
-ACCESS_AUD = "<access-application-aud-tag>"
+ACCESS_AUD = "7ba1daa2e0e4b0bd9024e83df23c27d45d40d3e92daffeee2a56bbdf0851bd22"

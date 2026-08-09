@@ -74,3 +74,78 @@ export function readCookie(request, name) {
   }
   return null
 }
+
+function decodeSegment(segment) {
+  const json = new TextDecoder().decode(fromBase64url(segment))
+  return JSON.parse(json)
+}
+
+// Verifies a Cf-Access-Jwt-Assertion. Returns the payload or null.
+// jwks is injected so this is unit-testable without network access.
+export async function verifyAccessJwt(token, jwks, aud, now = Date.now()) {
+  if (!token) return null
+  const parts = token.split('.')
+  if (parts.length !== 3) return null
+
+  let header
+  let payload
+  try {
+    header = decodeSegment(parts[0])
+    payload = decodeSegment(parts[1])
+  } catch {
+    return null
+  }
+
+  // Only RS256 is ever accepted — never trust the token's own alg claim to
+  // select a weaker algorithm, and never accept "none".
+  if (header.alg !== 'RS256' || !header.kid) return null
+
+  const jwk = jwks?.keys?.find((k) => k.kid === header.kid)
+  if (!jwk) return null
+
+  const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud]
+  if (!audiences.includes(aud)) return null
+  if (typeof payload.exp !== 'number' || payload.exp * 1000 <= now) return null
+
+  let key
+  try {
+    key = await crypto.subtle.importKey(
+      'jwk',
+      { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['verify']
+    )
+  } catch {
+    return null
+  }
+
+  let signature
+  try {
+    signature = fromBase64url(parts[2])
+  } catch {
+    return null
+  }
+
+  const valid = await crypto.subtle.verify(
+    'RSASSA-PKCS1-v1_5',
+    key,
+    signature,
+    encoder.encode(`${parts[0]}.${parts[1]}`)
+  )
+  return valid ? payload : null
+}
+
+let jwksCache = { domain: null, keys: null, fetchedAt: 0 }
+const JWKS_TTL_MS = 60 * 60 * 1000
+
+export async function fetchAccessJwks(teamDomain) {
+  const fresh = jwksCache.domain === teamDomain && Date.now() - jwksCache.fetchedAt < JWKS_TTL_MS
+  if (fresh) return jwksCache.keys
+
+  const response = await fetch(`https://${teamDomain}/cdn-cgi/access/certs`)
+  if (!response.ok) throw new Error(`JWKS fetch failed: ${response.status}`)
+  const keys = await response.json()
+  jwksCache = { domain: teamDomain, keys, fetchedAt: Date.now() }
+  return keys
+}
