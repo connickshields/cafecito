@@ -1,0 +1,32 @@
+<script>
+  export let data = [];
+  export let emptyMessage = "No data yet";
+
+  const SERIES = "#2a78d6";
+
+  $: max = Math.max(1, ...data.map((d) => d.value));
+</script>
+
+{#if data.length === 0}
+  <p class="text-sm text-gray-500 py-12 text-center">{emptyMessage}</p>
+{:else}
+  <ul class="space-y-2">
+    {#each data as row (row.label)}
+      <li
+        class="grid grid-cols-[9rem_1fr_3rem] items-center gap-3"
+        title="{row.label}: {row.value}"
+      >
+        <span class="text-sm text-gray-700 truncate">{row.label}</span>
+        <span class="h-3 rounded-full bg-gray-100 overflow-hidden">
+          <span
+            class="block h-full rounded-full"
+            style="width: {(row.value / max) * 100}%; background-color: {SERIES};"
+          ></span>
+        </span>
+        <span class="text-sm font-semibold text-gray-900 text-right tabular-nums">
+          {row.value}
+        </span>
+      </li>
+    {/each}
+  </ul>
+{/if}
