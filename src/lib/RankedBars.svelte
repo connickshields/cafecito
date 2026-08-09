@@ -30,4 +30,24 @@
       </li>
     {/each}
   </ul>
+
+  <!-- Redundant with the visible rows above, but keeps a single, table-shaped
+       access path consistent with BarChart's sr-only table. -->
+  <table class="sr-only">
+    <caption>Ranked data</caption>
+    <thead>
+      <tr>
+        <th scope="col">Label</th>
+        <th scope="col">Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {#each data as row (row.label)}
+        <tr>
+          <td>{row.label}</td>
+          <td>{row.value}</td>
+        </tr>
+      {/each}
+    </tbody>
+  </table>
 {/if}

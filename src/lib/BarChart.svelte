@@ -52,8 +52,8 @@
       />
       {#each data as point, index (point.label)}
         <path d={barPath(point.value, index)} fill={SERIES} />
-        <!-- Full-height hit target, wider than the mark itself. Focusable so the
-             tooltip is reachable via keyboard, matching the mouse hover behavior. -->
+        <!-- Full-height hit target, wider than the mark itself. Mouse-hover only —
+             the sr-only table below carries this same data for keyboard/AT users. -->
         <rect
           x={index * slot}
           y={TOP}
@@ -61,11 +61,8 @@
           height={BASELINE - TOP}
           fill="transparent"
           role="img"
-          tabindex="0"
           aria-label="{point.label}: {point.value}"
           on:mouseenter={() => (hovered = index)}
-          on:focus={() => (hovered = index)}
-          on:blur={() => (hovered = null)}
         />
         {#if index % labelEvery === 0}
           <text
@@ -93,5 +90,24 @@
         {data[hovered].label}: {data[hovered].value}
       </div>
     {/if}
+
+    <!-- Keyboard/screen-reader access to the same values the bars encode. -->
+    <table class="sr-only">
+      <caption>Chart data</caption>
+      <thead>
+        <tr>
+          <th scope="col">Label</th>
+          <th scope="col">Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each data as point (point.label)}
+          <tr>
+            <td>{point.label}</td>
+            <td>{point.value}</td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
   </div>
 {/if}
