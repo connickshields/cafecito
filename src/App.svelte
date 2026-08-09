@@ -9,21 +9,40 @@
     isBaristaUser,
     signInAnonymously,
     supabase,
+    getActiveOrder,
   } from "./lib/supabase";
 
   let customerName = "";
   let submittedCustomerName = "";
   let showBaristaLogin = false;
   let loading = true;
+  let initialOrderId = null;
 
   onMount(async () => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
+    let activeSession = session;
     if (session) {
       userSession.set(session);
     } else {
-      await signInAnonymously();
+      const data = await signInAnonymously();
+      activeSession = data.session;
+    }
+
+    const user = activeSession?.user;
+    if (user && !isBaristaUser(user)) {
+      try {
+        const active = await getActiveOrder();
+        if (active) {
+          submittedCustomerName = active.customer_name;
+          initialOrderId = active.id;
+        } else {
+          customerName = localStorage.getItem("cafecito-customer-name") ?? "";
+        }
+      } catch (e) {
+        // fall through to the normal name form
+      }
     }
     loading = false;
   });
@@ -31,6 +50,7 @@
   function handleNameSubmit() {
     if (customerName.trim()) {
       submittedCustomerName = customerName.trim();
+      localStorage.setItem("cafecito-customer-name", submittedCustomerName);
       customerName = "";
     }
   }
@@ -94,7 +114,7 @@
         <Icons name="person" size={24} />
       </button>
     {:else}
-      <CustomerView customerName={submittedCustomerName} />
+      <CustomerView customerName={submittedCustomerName} {initialOrderId} />
     {/if}
   {:else}
     <p class="text-center mt-8">Loading...</p>

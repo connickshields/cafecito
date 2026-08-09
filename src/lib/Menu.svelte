@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, createEventDispatcher } from "svelte";
+  import { onMount, onDestroy, createEventDispatcher } from "svelte";
   import type { MenuItem } from "../types";
   import Icons from "./Icons.svelte";
   import { getCustomizationOptions, getMilkOptions } from "./supabase";
@@ -24,10 +24,33 @@
 
   let justAddedItemId: number | null = null;
 
+  let optionsPollId: NodeJS.Timeout;
+
   onMount(async () => {
-    milkOptions = await getMilkOptions(true);
-    customizationOptions = await getCustomizationOptions();
+    await refreshOptions();
+    optionsPollId = setInterval(refreshOptions, 5000);
   });
+
+  onDestroy(() => {
+    clearInterval(optionsPollId);
+  });
+
+  async function refreshOptions() {
+    try {
+      milkOptions = await getMilkOptions(true); // unavailable milks render greyed out
+      customizationOptions = await getCustomizationOptions();
+    } catch (e) {
+      return; // keep last known options
+    }
+    // Selections in the open customize modal must not point at 86'd options
+    if (selectedMilkOptionId !== null) {
+      const milk = milkOptions.find((m) => m.id === selectedMilkOptionId);
+      if (!milk || !milk.available) selectedMilkOptionId = null;
+    }
+    selectedCustomizationOptionIds = selectedCustomizationOptionIds.filter((id) =>
+      customizationOptions.some((c) => c.id === id)
+    );
+  }
 
   function selectItem(item: MenuItem) {
     selectedItem = item;

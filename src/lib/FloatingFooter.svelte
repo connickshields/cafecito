@@ -6,6 +6,7 @@
   export let onViewCart: () => void;
   export let onSubmitOrder: () => void;
   export let showCart: boolean;
+  export let submitting = false;
 
   let prevItemCount = itemCount;
 
@@ -42,10 +43,11 @@
         <div in:fly={{ y: 20, duration: 300 }} out:fade={{ duration: 200 }}>
           <button
             on:click={onSubmitOrder}
-            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 flex items-center"
+            disabled={submitting}
+            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 flex items-center disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span class="mr-2"><Icons name="coffee-cup" size={20} /></span>
-            Submit Order
+            {submitting ? "Sending…" : "Submit Order"}
           </button>
         </div>
       {/if}
