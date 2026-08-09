@@ -186,9 +186,9 @@ D1's `batch()` is a transaction, but all statements are submitted together, so
 no statement can consume a previous statement's result. There is no procedural
 fallback.
 
-**Resolution:** the Worker generates a `submission_id` (UUID) and the child rows'
-own ids before the batch. The parent is then addressed by `submission_id`
-instead of by its unknown autoincrement id:
+**Resolution:** the **client** generates a `submission_id` (UUID) and the Worker
+generates the child rows' own ids before the batch. The parent is then addressed
+by `submission_id` instead of by its unknown autoincrement id:
 
 ```sql
 INSERT INTO orders (customer_id, customer_name, status, submission_id)
@@ -208,9 +208,16 @@ All statements go in one `batch()`, preserving the atomicity gained in #15.
 handler returns the existing order rather than creating a duplicate. The current
 Supabase implementation does create duplicates in this case.
 
+The client must own this value for that guarantee to hold. If the Worker
+generated it, a retried request would carry a fresh id and duplicate anyway.
+`CustomerView.svelte` therefore generates the UUID when a submit is first
+attempted, holds it across retries, and clears it only once the order is
+accepted. `submitOrder(customerName, orderItems, submissionId)` takes it as an
+optional third argument and generates one when omitted.
+
 ## 3. API surface
 
-Eleven routes replace the PostgREST calls and two RPCs.
+Twelve routes replace the PostgREST calls and two RPCs.
 
 | Route | Replaces | Auth |
 |---|---|---|
@@ -220,14 +227,19 @@ Eleven routes replace the PostgREST calls and two RPCs.
 | `GET /api/orders/:id` | `getOrderDetails` | cookie + ownership |
 | `POST /api/orders/:id/cancel` | `cancelOrder` | cookie + ownership |
 | `GET /api/queue-stats` | `get_queue_stats` RPC | cookie |
+| `GET /api/barista/menu` | `getMenuItems(true)` and siblings | Access |
 | `GET /api/barista/orders` | `getOrders` | Access |
 | `PATCH /api/barista/orders/:id` | `updateOrderStatus` | Access |
 | `PATCH /api/barista/items/:id` | `updateItemAvailability` | Access |
 | `PATCH /api/barista/milk/:id` | `updateMilkAvailability` | Access |
 | `PATCH /api/barista/customizations/:id` | `updateCustomizationAvailability` | Access |
 
-`GET /api/menu` accepts `?include_unavailable=1` for the barista view, matching
-the existing `includeUnavailable` parameter.
+The barista view needs unavailable rows too (it is where availability gets
+toggled). That is a **separate Access-gated route**, `GET /api/barista/menu`,
+rather than an `?include_unavailable=1` flag on the customer endpoint. A query
+parameter would let any customer widen their own view by editing a URL; a
+separate mount point cannot be widened at all. `api.js` selects the route from
+the existing `includeUnavailable` argument, so callers are unchanged.
 
 ### Collapsing the menu reads
 
