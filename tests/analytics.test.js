@@ -37,6 +37,14 @@ describe('fulfillmentDurations', () => {
     expect(fulfillmentDurations([order('completed', 'not-a-date', '2026-08-09T10:03:00Z')])).toEqual([])
   })
 
+  it('drops rows with a null created_at', () => {
+    expect(fulfillmentDurations([order('completed', null, '2026-08-09T10:03:00Z')])).toEqual([])
+  })
+
+  it('drops rows with a null updated_at', () => {
+    expect(fulfillmentDurations([order('completed', '2026-08-09T10:00:00Z', null)])).toEqual([])
+  })
+
   it('returns an empty array for no orders', () => {
     expect(fulfillmentDurations([])).toEqual([])
   })

@@ -20,6 +20,7 @@ const FULFILLMENT_BUCKETS = [
 export function fulfillmentDurations(orders) {
   return orders
     .filter((order) => order.status === 'completed')
+    .filter((order) => order.created_at && order.updated_at)
     .map(
       (order) =>
         new Date(order.updated_at).getTime() - new Date(order.created_at).getTime()
