@@ -36,6 +36,8 @@
 
 There is no component test runner in this project, so this task is verified by build plus manual browser check.
 
+> **Branch note:** `HangoverNotice.svelte` lives on the unmerged `feat/hangover-notice` branch and does not exist here, so it is absent from Step 6's markup. When that branch merges, the two changes will conflict textually — resolve by keeping this task's `{#if}/{:else if}/{:else}` structure and placing `<HangoverNotice />` inside the final `{:else}`, so the notice stays hidden while the café is closed.
+
 - [ ] **Step 1: Create the closed notice component**
 
 Create `src/lib/ClosedNotice.svelte`:
@@ -126,7 +128,6 @@ In `src/lib/CustomerView.svelte`, replace the `{#if loading} ... {:else} ... {/i
             <h2 class="text-3xl font-bold mb-4 text-center">
               <span>Welcome, {customerName}!</span>
             </h2>
-            <HangoverNotice />
             {#if queueDepth && queueDepth.drinksAhead > 0}
               <div
                 transition:fade

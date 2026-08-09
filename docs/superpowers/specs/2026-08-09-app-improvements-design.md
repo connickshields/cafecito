@@ -22,8 +22,13 @@ block with a closed notice:
 - Heading: "The café isn't accepting orders right now"
 - Subtext: "Check back soon — this page updates automatically."
 
-Hidden in this state: the hangover notice, the queue banner, the menu grid, the
-cart, and the `FloatingFooter`. There is no ordering path to dead-end into.
+Hidden in this state: the queue banner, the menu grid, the cart, and the
+`FloatingFooter`. There is no ordering path to dead-end into.
+
+The hangover notice is also part of this ordering block conceptually, but
+`HangoverNotice.svelte` lives on the unmerged `feat/hangover-notice` branch and
+is not present here. When that branch merges, place it inside the final
+`{:else}` arm so it stays hidden while the café is closed.
 
 The existing 5-second `refreshPageData` poll restores the menu automatically
 when a barista marks an item available again. No reload required.
