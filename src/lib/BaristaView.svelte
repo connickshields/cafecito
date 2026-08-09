@@ -272,12 +272,6 @@
             </div>
           {/if}
         </div>
-        <h1
-          class="text-6xl font-bold text-primary font-display yesteryear-regular text-center absolute left-1/2 transform -translate-x-1/2"
-          style="-webkit-text-stroke: 8px #000; paint-order: stroke fill;"
-        >
-          Cafecito
-        </h1>
         <div class="flex items-center space-x-4">
           <button
             on:click={toggleStats}
