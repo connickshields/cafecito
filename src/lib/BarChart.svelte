@@ -2,6 +2,7 @@
   export let data = [];
   export let emptyMessage = "No data yet";
   export let labelEvery = 1;
+  export let caption = "Chart data";
 
   const SERIES = "#2a78d6";
   const WIDTH = 480;
@@ -93,7 +94,7 @@
 
     <!-- Keyboard/screen-reader access to the same values the bars encode. -->
     <table class="sr-only">
-      <caption>Chart data</caption>
+      <caption>{caption}</caption>
       <thead>
         <tr>
           <th scope="col">Label</th>

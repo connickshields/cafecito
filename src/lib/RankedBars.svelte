@@ -1,6 +1,7 @@
 <script>
   export let data = [];
   export let emptyMessage = "No data yet";
+  export let caption = "Ranked data";
 
   const SERIES = "#2a78d6";
 
@@ -34,7 +35,7 @@
   <!-- Redundant with the visible rows above, but keeps a single, table-shaped
        access path consistent with BarChart's sr-only table. -->
   <table class="sr-only">
-    <caption>Ranked data</caption>
+    <caption>{caption}</caption>
     <thead>
       <tr>
         <th scope="col">Label</th>
