@@ -5,9 +5,10 @@
   const SERIES = "#2a78d6";
 
   $: max = Math.max(1, ...data.map((d) => d.value));
+  $: hasData = data.some((d) => d.value > 0);
 </script>
 
-{#if data.length === 0}
+{#if !hasData}
   <p class="text-sm text-gray-500 py-12 text-center">{emptyMessage}</p>
 {:else}
   <ul class="space-y-2">
@@ -17,9 +18,9 @@
         title="{row.label}: {row.value}"
       >
         <span class="text-sm text-gray-700 truncate">{row.label}</span>
-        <span class="h-3 rounded-full bg-gray-100 overflow-hidden">
+        <span class="h-3 rounded-r bg-gray-100 overflow-hidden">
           <span
-            class="block h-full rounded-full"
+            class="block h-full rounded-r"
             style="width: {(row.value / max) * 100}%; background-color: {SERIES};"
           ></span>
         </span>

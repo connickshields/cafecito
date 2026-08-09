@@ -60,7 +60,7 @@
           width={slot}
           height={BASELINE - TOP}
           fill="transparent"
-          role="button"
+          role="img"
           tabindex="0"
           aria-label="{point.label}: {point.value}"
           on:mouseenter={() => (hovered = index)}
@@ -82,6 +82,10 @@
     </svg>
 
     {#if hovered !== null}
+      <!-- Percentage positioning below assumes the svg's viewBox maps linearly onto its
+           rendered box: keep the default preserveAspectRatio and the w-full h-auto sizing
+           above, and don't add wrapper padding or a sibling element, or the tooltip will
+           be misaligned. -->
       <div
         class="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded bg-gray-900 px-2 py-1 text-xs text-white whitespace-nowrap shadow"
         style="left: {((hovered * slot + slot / 2) / WIDTH) * 100}%; top: {((BASELINE - barHeight(data[hovered].value) - 6) / HEIGHT) * 100}%;"
