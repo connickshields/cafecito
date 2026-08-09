@@ -5,6 +5,7 @@
   import Cart from "./Cart.svelte";
   import FloatingFooter from "./FloatingFooter.svelte";
   import OrderStatus from "./OrderStatus.svelte";
+  import HangoverNotice from "./HangoverNotice.svelte";
   import { userSession, getMenuItems, submitOrder, getQueueStats } from "./supabase";
   import { waitRange } from "./waitEstimate";
   import type { MenuItem, OrderItem } from "../types";
@@ -151,6 +152,7 @@
             <h2 class="text-3xl font-bold mb-4 text-center">
               <span>Welcome, {customerName}!</span>
             </h2>
+            <HangoverNotice />
             {#if queueDepth && queueDepth.drinksAhead > 0}
               <div
                 transition:fade
