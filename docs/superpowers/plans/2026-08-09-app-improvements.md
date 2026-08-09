@@ -1232,4 +1232,4 @@ Expected: no output.
 - [ ] **Confirm the wordmark is gone from the barista view only**
 
 Run: `grep -rn "Cafecito" src/`
-Expected: exactly two matches — `src/App.svelte` (the name-entry screen) and `src/lib/CustomerView.svelte` (the customer header). Both keep their wordmark; only the barista view loses it.
+Expected: exactly three matches — `src/App.svelte` (the name-entry screen) and `src/lib/CustomerView.svelte` (the customer header), which both keep their visible wordmark, plus `src/lib/BaristaView.svelte`'s `<h1 class="sr-only">Cafecito — Barista</h1>`. Only the barista view's *visible* wordmark is removed; the screen-reader heading was added afterwards to restore the document outline, so no visible `Cafecito` text remains there.
