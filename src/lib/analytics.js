@@ -58,3 +58,90 @@ export function formatDuration(ms) {
   const seconds = Math.floor((ms % MINUTE_MS) / 1000)
   return `${minutes}m ${seconds}s`
 }
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+// Demand pattern — every order counts, whatever became of it.
+export function ordersByHour(orders) {
+  const counts = Array.from({ length: 24 }, (_, hour) => ({
+    label: String(hour),
+    value: 0,
+  }))
+  orders.forEach((order) => {
+    const hour = new Date(order.created_at).getHours()
+    if (Number.isInteger(hour)) counts[hour].value += 1
+  })
+  return counts
+}
+
+export function ordersByDayOfWeek(orders) {
+  const counts = DAY_LABELS.map((label) => ({ label, value: 0 }))
+  orders.forEach((order) => {
+    const day = new Date(order.created_at).getDay()
+    if (Number.isInteger(day)) counts[day].value += 1
+  })
+  return counts
+}
+
+// Ranked counts over completed orders only — what the bar actually made.
+// extract() maps one order item to zero or more { key, count } contributions.
+function rankCounts(orders, extract) {
+  const totals = new Map()
+  orders
+    .filter((order) => order.status === 'completed')
+    .forEach((order) => {
+      order.items.forEach((item) => {
+        extract(item).forEach(({ key, count }) => {
+          totals.set(key, (totals.get(key) ?? 0) + count)
+        })
+      })
+    })
+  return [...totals.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label))
+}
+
+export const drinkCounts = (orders) =>
+  rankCounts(orders, (item) => [{ key: item.name, count: item.quantity }])
+
+export const milkCounts = (orders) =>
+  rankCounts(orders, (item) =>
+    item.milkOption ? [{ key: item.milkOption, count: item.quantity }] : []
+  )
+
+// Quantity-weighted: three vanilla lattes are three vanilla pumps, not one.
+export const customizationCounts = (orders) =>
+  rankCounts(orders, (item) =>
+    (item.customizations ?? []).map((name) => ({ key: name, count: item.quantity }))
+  )
+
+export function computeAnalytics(orders) {
+  const completed = orders.filter((order) => order.status === 'completed')
+  const cancelled = orders.filter((order) => order.status === 'cancelled')
+  const durations = fulfillmentDurations(orders)
+
+  return {
+    totals: {
+      orders: orders.length,
+      completed: completed.length,
+      cancelled: cancelled.length,
+      cancelRate: orders.length === 0 ? 0 : cancelled.length / orders.length,
+      drinks: completed.reduce(
+        (sum, order) =>
+          sum + order.items.reduce((count, item) => count + item.quantity, 0),
+        0
+      ),
+    },
+    fulfillment: {
+      count: durations.length,
+      medianMs: percentile(durations, 50),
+      p90Ms: percentile(durations, 90),
+    },
+    ordersByHour: ordersByHour(orders),
+    ordersByDayOfWeek: ordersByDayOfWeek(orders),
+    fulfillmentHistogram: fulfillmentHistogram(durations),
+    drinks: drinkCounts(orders),
+    milk: milkCounts(orders),
+    customizations: customizationCounts(orders),
+  }
+}
