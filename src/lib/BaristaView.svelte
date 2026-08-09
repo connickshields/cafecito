@@ -15,7 +15,7 @@
   import type { Order } from "../types";
   import Icons from "./Icons.svelte";
   import Analytics from "./Analytics.svelte";
-  import { formatDuration } from "./analytics";
+  import { formatDuration, fulfillmentDurations } from "./analytics";
 
   let orders: Order[] = [];
   let selectedOrder: Order | null = null;
@@ -71,12 +71,7 @@
     // Calculate statistics
     completedOrders = orders.filter((order) => order.status === "completed").length;
 
-    const completedOrderTimes = orders
-      .filter((order) => order.status === "completed")
-      .map(
-        (order) =>
-          new Date(order.updated_at).getTime() - new Date(order.created_at).getTime()
-      );
+    const completedOrderTimes = fulfillmentDurations(orders);
 
     if (completedOrderTimes.length > 0) {
       const avgTime =
@@ -84,7 +79,7 @@
         completedOrderTimes.length;
       averageFulfillmentTime = formatDuration(avgTime);
     } else {
-      averageFulfillmentTime = "N/A";
+      averageFulfillmentTime = formatDuration(null);
     }
   }
 
@@ -190,6 +185,7 @@
       <div
         class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center"
       >
+        <h1 class="sr-only">Cafecito — Barista</h1>
         <div class="flex-1 flex items-center space-x-8">
           <div class="flex flex-col items-center">
             <span class="text-2xl font-bold text-green-600">{completedOrders}</span>

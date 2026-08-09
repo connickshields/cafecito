@@ -41,6 +41,7 @@
       viewBox="0 0 {WIDTH} {HEIGHT}"
       class="w-full h-auto"
       role="img"
+      aria-label={caption}
       on:mouseleave={() => (hovered = null)}
     >
       <line

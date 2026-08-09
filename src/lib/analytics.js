@@ -68,6 +68,7 @@ export function ordersByHour(orders) {
     value: 0,
   }))
   orders.forEach((order) => {
+    if (!order.created_at) return
     const hour = new Date(order.created_at).getHours()
     if (Number.isInteger(hour)) counts[hour].value += 1
   })
@@ -77,6 +78,7 @@ export function ordersByHour(orders) {
 export function ordersByDayOfWeek(orders) {
   const counts = DAY_LABELS.map((label) => ({ label, value: 0 }))
   orders.forEach((order) => {
+    if (!order.created_at) return
     const day = new Date(order.created_at).getDay()
     if (Number.isInteger(day)) counts[day].value += 1
   })
@@ -119,6 +121,7 @@ export function computeAnalytics(orders) {
   const completed = orders.filter((order) => order.status === 'completed')
   const cancelled = orders.filter((order) => order.status === 'cancelled')
   const durations = fulfillmentDurations(orders)
+  const drinks = drinkCounts(orders)
 
   return {
     totals: {
@@ -126,11 +129,7 @@ export function computeAnalytics(orders) {
       completed: completed.length,
       cancelled: cancelled.length,
       cancelRate: orders.length === 0 ? 0 : cancelled.length / orders.length,
-      drinks: completed.reduce(
-        (sum, order) =>
-          sum + order.items.reduce((count, item) => count + item.quantity, 0),
-        0
-      ),
+      drinks: drinks.reduce((sum, drink) => sum + drink.value, 0),
     },
     fulfillment: {
       count: durations.length,
@@ -140,7 +139,7 @@ export function computeAnalytics(orders) {
     ordersByHour: ordersByHour(orders),
     ordersByDayOfWeek: ordersByDayOfWeek(orders),
     fulfillmentHistogram: fulfillmentHistogram(durations),
-    drinks: drinkCounts(orders),
+    drinks,
     milk: milkCounts(orders),
     customizations: customizationCounts(orders),
   }

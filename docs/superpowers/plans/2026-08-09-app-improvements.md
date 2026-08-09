@@ -478,7 +478,7 @@ export function formatDuration(ms) {
 - [ ] **Step 7: Run the tests to verify they pass**
 
 Run: `npm test`
-Expected: PASS — 16 tests across 4 suites.
+Expected: PASS — 18 tests across 4 suites (includes the null-`created_at`/`updated_at` guard cases added alongside the fulfillment timing math).
 
 - [ ] **Step 8: Commit**
 
@@ -808,7 +808,7 @@ export function computeAnalytics(orders) {
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `npm test`
-Expected: PASS — all suites green, 29 tests total.
+Expected: PASS — all suites green, 33 tests total (includes the null-`created_at` guard cases added for `ordersByHour` and `ordersByDayOfWeek`).
 
 - [ ] **Step 5: Commit**
 
@@ -1217,7 +1217,7 @@ got wrong."
 - [ ] **Run the full test suite**
 
 Run: `npm test`
-Expected: PASS, 29 tests.
+Expected: PASS, 33 tests.
 
 - [ ] **Run the production build**
 

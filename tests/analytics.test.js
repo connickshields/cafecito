@@ -160,6 +160,11 @@ describe('ordersByHour', () => {
     const result = ordersByHour([fullOrder('pending', 'not-a-date', 'not-a-date', [])])
     expect(result.reduce((sum, bucket) => sum + bucket.value, 0)).toBe(0)
   })
+
+  it('drops an order with a null created_at instead of bucketing it at epoch hour', () => {
+    const result = ordersByHour([fullOrder('pending', null, null, [])])
+    expect(result.reduce((sum, bucket) => sum + bucket.value, 0)).toBe(0)
+  })
 })
 
 describe('ordersByDayOfWeek', () => {
@@ -179,6 +184,11 @@ describe('ordersByDayOfWeek', () => {
     const result = ordersByDayOfWeek(orders)
     expect(result[0].value).toBe(1)
     expect(result[1].value).toBe(2)
+  })
+
+  it('drops an order with a null created_at instead of bucketing it at epoch weekday', () => {
+    const result = ordersByDayOfWeek([fullOrder('pending', null, null, [])])
+    expect(result.reduce((sum, bucket) => sum + bucket.value, 0)).toBe(0)
   })
 })
 
