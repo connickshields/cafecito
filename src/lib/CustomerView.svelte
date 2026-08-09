@@ -5,6 +5,7 @@
   import Cart from "./Cart.svelte";
   import FloatingFooter from "./FloatingFooter.svelte";
   import OrderStatus from "./OrderStatus.svelte";
+  import ClosedNotice from "./ClosedNotice.svelte";
   import { userSession, getMenuItems, submitOrder, getQueueStats } from "./supabase";
   import { waitRange } from "./waitEstimate";
   import type { MenuItem, OrderItem } from "../types";
@@ -15,6 +16,7 @@
   let orderItems: OrderItem[] = [];
   let menuItems: MenuItem[] = [];
   let loading = true;
+  let menuLoadFailed = false;
   let showCart = false;
   let showOrderStatus = initialOrderId !== null;
   let currentOrderId: number | null = initialOrderId;
@@ -24,7 +26,12 @@
   let pollId: NodeJS.Timeout;
 
   onMount(async () => {
-    menuItems = await getMenuItems();
+    try {
+      menuItems = await getMenuItems();
+    } catch (error) {
+      console.error("Error loading menu:", error);
+      menuLoadFailed = true;
+    }
     loading = false;
     await refreshPageData();
     pollId = setInterval(refreshPageData, 5000);
@@ -38,6 +45,7 @@
     if (showOrderStatus) return; // status screen has its own poll
     try {
       menuItems = await getMenuItems();
+      menuLoadFailed = false;
     } catch (e) {
       // keep last known menu
     }
@@ -118,6 +126,9 @@
 
   $: itemCount = orderItems.reduce((sum, item) => sum + item.quantity, 0);
 
+  $: menuUnavailable = !loading && !menuLoadFailed && menuItems.length === 0;
+  $: canOrder = !loading && !menuLoadFailed && menuItems.length > 0;
+
   // Any cart change clears the error banner
   $: if (orderItems) submitError = false;
 </script>
@@ -146,6 +157,10 @@
       <div class="max-w-3xl mx-auto">
         {#if loading}
           <p class="text-center">Loading menu items...</p>
+        {:else if menuLoadFailed}
+          <p class="text-center text-gray-600">Couldn't load the menu — retrying…</p>
+        {:else if menuUnavailable}
+          <ClosedNotice />
         {:else}
           <div class="space-y-8">
             <h2 class="text-3xl font-bold mb-4 text-center">
@@ -180,12 +195,14 @@
         </div>
       </div>
     {/if}
-    <FloatingFooter
-      {itemCount}
-      {showCart}
-      {submitting}
-      onViewCart={toggleCart}
-      onSubmitOrder={handleSubmitOrder}
-    />
+    {#if canOrder}
+      <FloatingFooter
+        {itemCount}
+        {showCart}
+        {submitting}
+        onViewCart={toggleCart}
+        onSubmitOrder={handleSubmitOrder}
+      />
+    {/if}
   </div>
 {/if}
