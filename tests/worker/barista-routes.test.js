@@ -4,6 +4,25 @@ import { handleBarista } from '../../worker/routes/barista.js'
 
 const ORIGIN = 'https://cafecito.test'
 
+// Mirrors the helper in authorization.test.js: inserts an order directly,
+// bypassing the create path.
+async function seedOrder(customerId, name, status = 'pending', itemName = 'Latte') {
+  const submissionId = crypto.randomUUID()
+  await env.DB.prepare(
+    'INSERT INTO orders (customer_id, customer_name, submission_id, status) VALUES (?, ?, ?, ?)'
+  ).bind(customerId, name, submissionId, status).run()
+
+  const order = await env.DB.prepare('SELECT id FROM orders WHERE submission_id = ?')
+    .bind(submissionId).first()
+  const item = await env.DB.prepare('SELECT id FROM items WHERE name = ?').bind(itemName).first()
+
+  await env.DB.prepare(
+    'INSERT INTO order_items (id, order_id, item_id, quantity) VALUES (?, ?, ?, 1)'
+  ).bind(crypto.randomUUID(), order.id, item.id).run()
+
+  return order.id
+}
+
 beforeEach(async () => {
   await env.DB.exec('DELETE FROM order_item_customizations')
   await env.DB.exec('DELETE FROM order_items')
@@ -80,5 +99,29 @@ describe('barista PATCH body validation', () => {
   it('returns 400, not 500, for an availability body that parses to a bare string', async () => {
     const result = await patch('/api/barista/milk/1', '"oops"')
     expect(result.status).toBe(400)
+  })
+})
+
+// If the /api/barista/* mount were ever wired to the wrong handler, every
+// test above (which only proves *rejection*) would still pass. This proves
+// an authorized request actually traverses the mount and returns data --
+// and pins the list shape src/lib/analytics.js and BaristaView.svelte
+// depend on (customerName, created_at, completedInstances).
+describe('an authorized barista request reaches its handler', () => {
+  it('GET /api/barista/orders returns the seeded order with the list shape', async () => {
+    const orderId = await seedOrder('cust-a', 'Ada')
+
+    const result = await handleBarista(
+      new Request(`${ORIGIN}/api/barista/orders`),
+      env,
+      new URL(`${ORIGIN}/api/barista/orders`)
+    )
+
+    expect(result.status).toBe(200)
+    const order = result.body.find((o) => o.id === orderId)
+    expect(order).toBeDefined()
+    expect(order.customerName).toBe('Ada')
+    expect(order.created_at).toEqual(expect.any(String))
+    expect(order.items[0].completedInstances).toEqual([false])
   })
 })

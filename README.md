@@ -19,6 +19,23 @@ Cafecito is a web application that was created to help me track orders when runn
 3. Apply migrations locally: `npx wrangler d1 migrations apply cafecito --local`
 4. Set the cookie signing secret:
    `openssl rand -base64 32 | npx wrangler secret put COOKIE_SECRET`
+5. For `npx wrangler dev` (local development), Worker secrets are not read
+   from the Cloudflare account — create a `.dev.vars` file (already
+   git-ignored) in the project root instead:
+   ```
+   COOKIE_SECRET=some-local-only-value
+   ```
+   Without it, `withCustomer` throws on every request and `wrangler dev`
+   answers with a 500, by design — see the note below.
+
+**Setting or rotating `COOKIE_SECRET` invalidates every live customer
+cookie.** The Worker fails closed if the secret is missing (a missing secret
+used to mean every cookie was signed with the literal string `"undefined"`,
+which is silently guessable — now it's a loud 500 instead). But that same
+fail-closed check means rotating the secret mid-event immediately
+un-verifies every cookie already handed out: every customer loses their
+order-status screen and gets a fresh identity on their next request. Only
+rotate between events, never during one.
 
 ### Cloudflare Access (barista login)
 

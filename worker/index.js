@@ -13,6 +13,14 @@ export function json(data, init = {}) {
 // Resolves the caller's customer id from the signed cookie, minting a new one
 // on first contact. Returns the id plus the Set-Cookie header to echo back.
 export async function withCustomer(request, env) {
+  // encoder.encode(undefined) silently coerces to the 9-byte string
+  // "undefined" -- a publicly guessable HMAC key that would sign and verify
+  // every customer cookie without ever failing a request. Fail loud instead:
+  // the top-level fetch handler turns this into a 500.
+  if (!env.COOKIE_SECRET) {
+    throw new Error('COOKIE_SECRET is not configured')
+  }
+
   const existing = await verifyCustomerCookie(readCookie(request, CUSTOMER_COOKIE), env.COOKIE_SECRET)
   if (existing) return { customerId: existing, setCookie: null }
 
