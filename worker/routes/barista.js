@@ -9,6 +9,14 @@ const AVAILABILITY_ROUTES = {
   customizations: 'customization_options',
 }
 
+// A parse failure (invalid JSON) and a valid parse of a non-object (null, a
+// bare number, a bare string, ...) must both be treated as "no usable body"
+// so the field checks below (body.status, body.available) can never throw.
+async function readJsonBody(request) {
+  const body = await request.json().catch(() => null)
+  return typeof body === 'object' && body !== null ? body : {}
+}
+
 // The security boundary. Every /api/barista/* request passes through here
 // before any handler runs, so a new route cannot ship unprotected.
 export async function requireBarista(request, env) {
@@ -37,7 +45,7 @@ export async function handleBarista(request, env, url) {
 
   const statusMatch = path.match(/^\/api\/barista\/orders\/(\d+)$/)
   if (statusMatch && method === 'PATCH') {
-    const body = await request.json().catch(() => ({}))
+    const body = await readJsonBody(request)
     if (!VALID_STATUSES.has(body.status)) {
       return { status: 400, body: { error: 'Invalid status' } }
     }
@@ -47,7 +55,7 @@ export async function handleBarista(request, env, url) {
 
   const availabilityMatch = path.match(/^\/api\/barista\/(items|milk|customizations)\/(\d+)$/)
   if (availabilityMatch && method === 'PATCH') {
-    const body = await request.json().catch(() => ({}))
+    const body = await readJsonBody(request)
     if (typeof body.available !== 'boolean') {
       return { status: 400, body: { error: 'available must be a boolean' } }
     }
