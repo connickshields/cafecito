@@ -156,3 +156,56 @@ export async function updateAvailability(db, table, id, available) {
     .run()
   return result.meta.changes > 0
 }
+
+// Port of the get_queue_stats plpgsql function.
+// Drain rate: over the last 5 completions within 90 minutes, drinks completed
+// after the earliest completion divided by the minutes between first and last.
+// NULL when fewer than 3 completions or the span is under 60 seconds.
+const QUEUE_STATS_SQL = `
+  WITH ahead AS (
+    SELECT COALESCE(SUM(oi.quantity), 0) AS drinks_ahead,
+           COUNT(DISTINCT o.id)          AS active_orders
+      FROM orders o
+      JOIN order_items oi ON oi.order_id = o.id
+     WHERE o.status IN ('pending','in_progress')
+       AND (?1 IS NULL OR o.created_at < (SELECT created_at FROM orders WHERE id = ?1))
+  ),
+  recent AS (
+    SELECT o.id,
+           o.updated_at,
+           (SELECT COALESCE(SUM(quantity), 0) FROM order_items oi WHERE oi.order_id = o.id) AS drinks
+      FROM orders o
+     WHERE o.status = 'completed'
+       AND o.updated_at > strftime('%Y-%m-%dT%H:%M:%SZ','now','-90 minutes')
+     ORDER BY o.updated_at DESC
+     LIMIT 5
+  ),
+  ordered AS (
+    SELECT drinks,
+           ROW_NUMBER() OVER (ORDER BY updated_at ASC) AS rn,
+           COUNT(*)        OVER () AS n,
+           MIN(updated_at) OVER () AS first_t,
+           MAX(updated_at) OVER () AS last_t
+      FROM recent
+  )
+  SELECT (SELECT drinks_ahead FROM ahead)  AS drinks_ahead,
+         (SELECT active_orders FROM ahead) AS active_orders,
+         (SELECT CASE
+                   WHEN MAX(n) IS NULL OR MAX(n) < 3 THEN NULL
+                   WHEN (CAST(strftime('%s', MAX(last_t)) AS INTEGER)
+                         - CAST(strftime('%s', MAX(first_t)) AS INTEGER)) < 60 THEN NULL
+                   ELSE ((CAST(strftime('%s', MAX(last_t)) AS INTEGER)
+                          - CAST(strftime('%s', MAX(first_t)) AS INTEGER)) / 60.0)
+                        / NULLIF(SUM(CASE WHEN rn > 1 THEN drinks ELSE 0 END), 0)
+                 END
+            FROM ordered)                  AS est_mins_per_drink
+`
+
+export async function getQueueStats(db, orderId) {
+  const row = await db.prepare(QUEUE_STATS_SQL).bind(orderId ?? null).first()
+  return {
+    drinksAhead: row?.drinks_ahead ?? 0,
+    activeOrders: row?.active_orders ?? 0,
+    estMinsPerDrink: row?.est_mins_per_drink == null ? null : Number(row.est_mins_per_drink),
+  }
+}
