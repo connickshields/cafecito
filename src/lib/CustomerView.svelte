@@ -7,7 +7,7 @@
   import OrderStatus from "./OrderStatus.svelte";
   import HangoverNotice from "./HangoverNotice.svelte";
   import ClosedNotice from "./ClosedNotice.svelte";
-  import { userSession, getMenuItems, submitOrder, getQueueStats } from "./api";
+  import { getMenuItems, submitOrder, getQueueStats } from "./api";
   import { waitRange } from "./waitEstimate";
   import type { MenuItem, OrderItem } from "../types";
 
@@ -23,6 +23,7 @@
   let currentOrderId: number | null = initialOrderId;
   let submitting = false;
   let submitError = false;
+  let submissionId = null;
   let queueDepth: { drinksAhead: number; activeOrders: number; estMinsPerDrink: number | null } | null = null;
   let pollId: NodeJS.Timeout;
 
@@ -102,14 +103,17 @@
   }
 
   async function handleSubmitOrder() {
-    if (orderItems.length === 0 || !$userSession || submitting) return;
+    if (orderItems.length === 0 || submitting) return;
+    // Reused across retries so a lost response cannot create a second order.
+    if (!submissionId) submissionId = crypto.randomUUID();
     submitting = true;
     submitError = false;
     try {
-      const result = await submitOrder(customerName, orderItems);
+      const result = await submitOrder(customerName, orderItems, submissionId);
       currentOrderId = result.orderId;
       showOrderStatus = true;
       orderItems = [];
+      submissionId = null;
     } catch (error) {
       console.error("Error submitting order:", error);
       submitError = true;
