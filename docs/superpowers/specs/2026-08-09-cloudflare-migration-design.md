@@ -217,7 +217,7 @@ optional third argument and generates one when omitted.
 
 ## 3. API surface
 
-Twelve routes replace the PostgREST calls and two RPCs.
+Eleven routes replace the PostgREST calls and two RPCs.
 
 | Route | Replaces | Auth |
 |---|---|---|
@@ -227,19 +227,34 @@ Twelve routes replace the PostgREST calls and two RPCs.
 | `GET /api/orders/:id` | `getOrderDetails` | cookie + ownership |
 | `POST /api/orders/:id/cancel` | `cancelOrder` | cookie + ownership |
 | `GET /api/queue-stats` | `get_queue_stats` RPC | cookie |
-| `GET /api/barista/menu` | `getMenuItems(true)` and siblings | Access |
 | `GET /api/barista/orders` | `getOrders` | Access |
 | `PATCH /api/barista/orders/:id` | `updateOrderStatus` | Access |
 | `PATCH /api/barista/items/:id` | `updateItemAvailability` | Access |
 | `PATCH /api/barista/milk/:id` | `updateMilkAvailability` | Access |
 | `PATCH /api/barista/customizations/:id` | `updateCustomizationAvailability` | Access |
 
-The barista view needs unavailable rows too (it is where availability gets
-toggled). That is a **separate Access-gated route**, `GET /api/barista/menu`,
-rather than an `?include_unavailable=1` flag on the customer endpoint. A query
-parameter would let any customer widen their own view by editing a URL; a
-separate mount point cannot be widened at all. `api.js` selects the route from
-the existing `includeUnavailable` argument, so callers are unchanged.
+**`/api/menu` returns every row, with its `available` flag; filtering happens in
+the client.** There is exactly one menu endpoint, reachable without Access.
+
+An earlier draft of this spec made `includeUnavailable` an Access-gated
+`/api/barista/menu` route, on the reasoning that a query parameter "would let any
+customer widen their own view." That reasoning was wrong on the facts and the
+mistake is worth recording. `rls.sql` granted `SELECT ... USING (true)` on
+`items`, `milk_options`, and `customization_options` to every authenticated
+session — including anonymous customers. Unavailable rows were never
+confidential, so there was no view to widen.
+
+Worse, a customer feature depends on reading them: `Menu.svelte:40` calls
+`getMilkOptions(true)` specifically so sold-out milks render greyed out rather
+than vanishing mid-order. Gating that behind Access returned 403 to every
+customer, and because `Menu.svelte` swallows the error to preserve last-known
+options — empty on first load — milk and customization selection broke silently
+and permanently, with both test suites green.
+
+`api.js` applies `includeUnavailable` as a client-side filter over one coalesced
+response, so all callers keep their existing signatures. Baristas and customers
+read the same endpoint because they need the same data; only the writes are
+Access-gated.
 
 ### Collapsing the menu reads
 

@@ -10,6 +10,17 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-09-cloudflare-migration-design.md`
 
+> **CORRECTION applied during execution (commit `e334268`).** Tasks 4, 9, 10 and
+> 12 as originally written gated unavailable menu rows behind an Access-only
+> `/api/barista/menu` route. That was wrong: `Menu.svelte:40` is customer-facing
+> and calls `getMilkOptions(true)` to grey out sold-out milks, and `rls.sql`
+> granted menu SELECT to every session, so nothing was ever confidential.
+> The landed design: `getMenu(db)` takes no filter argument and returns all rows;
+> `/api/menu` is the only menu endpoint and needs no Access; `/api/barista/menu`
+> does not exist; `api.js` applies `includeUnavailable` as a client-side filter
+> over one coalesced response. Follow the landed design, not the code blocks in
+> Tasks 4, 9, 10 and 12 below, wherever they disagree.
+
 ## Global Constraints
 
 - **Timestamps are always `strftime('%Y-%m-%dT%H:%M:%SZ','now')`**, never `datetime('now')`. Every timestamp column default and every trigger uses this exact expression. Safari misparses the space-separated form.
