@@ -96,6 +96,11 @@ export async function verifyAccessJwt(token, jwks, aud, now = Date.now()) {
     return null
   }
 
+  // JSON.parse succeeds on non-object literals like "null" — guard against
+  // that so header.alg / payload.aud below can never throw.
+  if (typeof header !== 'object' || header === null) return null
+  if (typeof payload !== 'object' || payload === null) return null
+
   // Only RS256 is ever accepted — never trust the token's own alg claim to
   // select a weaker algorithm, and never accept "none".
   if (header.alg !== 'RS256' || !header.kid) return null

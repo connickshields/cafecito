@@ -68,6 +68,15 @@ describe('readCookie', () => {
 
 const AUD = 'test-aud-tag'
 
+const encodeB64url = (obj) =>
+  btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+
+const decodeB64url = (value) => {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/')
+  const binary = atob(padded + '='.repeat((4 - (padded.length % 4)) % 4))
+  return Uint8Array.from(binary, (c) => c.charCodeAt(0))
+}
+
 // Builds a real RS256 JWT plus the JWKS that validates it.
 async function makeAccessToken(overrides = {}) {
   const { publicKey, privateKey } = await crypto.subtle.generateKey(
@@ -143,5 +152,54 @@ describe('verifyAccessJwt', () => {
     const body = btoa(JSON.stringify({ aud: [AUD], exp: Math.floor(Date.now() / 1000) + 60 }))
       .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
     expect(await verifyAccessJwt(`${noneHeader}.${body}.`, jwks, AUD)).toBeNull()
+  })
+
+  it('rejects a token whose header segment decodes to the JSON literal null (resolves null, does not throw)', async () => {
+    const { jwks } = await makeAccessToken()
+    const nullHeader = encodeB64url(null)
+    const body = encodeB64url({ aud: [AUD], exp: Math.floor(Date.now() / 1000) + 60 })
+    const result = await verifyAccessJwt(`${nullHeader}.${body}.sig`, jwks, AUD)
+    expect(result).toBeNull()
+  })
+
+  it('rejects a token whose payload segment decodes to the JSON literal null (resolves null, does not throw)', async () => {
+    const { token, jwks } = await makeAccessToken()
+    const [headerSegment, , signatureSegment] = token.split('.')
+    const nullPayload = encodeB64url(null)
+    const result = await verifyAccessJwt(`${headerSegment}.${nullPayload}.${signatureSegment}`, jwks, AUD)
+    expect(result).toBeNull()
+  })
+
+  it('rejects a genuine algorithm-confusion attack: a valid HS256 signature keyed with the RSA public key', async () => {
+    // Unlike the alg:"none" case above (which is rejected for the coincidental
+    // reason that its signature is empty), this token carries a signature that
+    // IS cryptographically valid for HS256 using the RSA public key's own
+    // modulus bytes as the HMAC secret — the classic algorithm-confusion
+    // attack. The only thing that can reject it is the hardcoded RS256 check.
+    const { jwks } = await makeAccessToken()
+    const publicJwk = jwks.keys[0]
+
+    const header = { alg: 'HS256', kid: publicJwk.kid, typ: 'JWT' }
+    const payload = {
+      aud: [AUD],
+      email: 'attacker@example.com',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }
+    const signingInput = `${encodeB64url(header)}.${encodeB64url(payload)}`
+
+    const hmacKey = await crypto.subtle.importKey(
+      'raw',
+      decodeB64url(publicJwk.n),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    )
+    const sig = await crypto.subtle.sign('HMAC', hmacKey, new TextEncoder().encode(signingInput))
+    let binary = ''
+    for (const b of new Uint8Array(sig)) binary += String.fromCharCode(b)
+    const encodedSig = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+
+    const forgedToken = `${signingInput}.${encodedSig}`
+    expect(await verifyAccessJwt(forgedToken, jwks, AUD)).toBeNull()
   })
 })
