@@ -1,6 +1,9 @@
 name = "cafecito"
 main = "worker/index.js"
 compatibility_date = "2026-08-01"
+# Without this, workers.dev also serves the same Worker/D1 with no Access
+# gate in front of it -- a second, unprotected origin burning the same quota.
+workers_dev = false
 
 [assets]
 directory = "./dist"

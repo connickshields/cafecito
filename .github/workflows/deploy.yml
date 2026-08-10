@@ -6,8 +6,10 @@ on:
     branches: [main]
 
 concurrency:
-  # Never let two deploys race the same migration.
-  group: deploy
+  # Never let two deploys race the same migration. Push (merge-to-main) runs
+  # share a single "deploy" lane so they queue in order; PR runs get their
+  # own per-ref lane so a later PR can never evict an already-queued deploy.
+  group: ${{ github.event_name == 'push' && 'deploy' || github.ref }}
   cancel-in-progress: false
 
 jobs:
