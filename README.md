@@ -112,6 +112,28 @@ inherit the top-level `routes`, so without it a preview deploy reassigns
 `cafecito.connick.me` away from production. Wrangler only warns about this, so
 nothing fails the build — it just takes the site down.
 
+**What previews cover:** the customer ordering flow — menu, cart, order
+submission, status, and the queue estimate.
+
+**What they do not cover:** barista data (`/api/barista/*` returns 403 because
+no Access application covers the preview hostname — the dashboard renders and
+shows its error banner), anything Access-specific such as the login redirect,
+and custom-domain behavior.
+
+**Resetting the preview database.** All PRs share one preview database, so it
+accumulates test orders, and migrations from abandoned PRs stay applied
+forever — wrangler tracks applied migrations by filename, so an abandoned
+`0002_foo.sql` never goes away and a later real `0002_bar.sql` applies
+alongside it. The preview schema can end up a superset of production's. When
+that becomes confusing, throw it away:
+
+    wrangler d1 delete cafecito-preview
+    wrangler d1 create cafecito-preview
+
+Then update the id in `[[env.preview.d1_databases]]` and commit. Test orders
+alone are not a reason to reset — the queue banner and wait estimate need
+orders before they show anything interesting.
+
 ### Development
 
 - `npm run dev` — Vite dev server for the SPA
