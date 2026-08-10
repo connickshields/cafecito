@@ -63,12 +63,16 @@ jobs:
 
   preview:
     needs: verify
-    # Fork and Dependabot PRs do not receive repository secrets, so wrangler
-    # cannot authenticate. Skipping them keeps their checks green rather than
-    # training us to ignore a permanently red X. They still run `verify`.
+    # Fork PRs and Dependabot PRs do not receive repository secrets, so
+    # wrangler cannot authenticate. Skipping them keeps their checks green
+    # rather than training us to ignore a permanently red X. They still run
+    # `verify`. The two checks exclude different things: Dependabot opens
+    # PRs from a branch in this repository (not a fork), so the repo-name
+    # check alone does not catch it — the actor check is needed too.
     if: >
       github.event_name == 'pull_request' &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -101,6 +105,7 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           SUBDOMAIN: ${{ vars.WORKERS_SUBDOMAIN }}
         run: |
+          : "${SUBDOMAIN:?WORKERS_SUBDOMAIN repository variable is not set}"
           marker="<!-- cafecito-preview-url -->"
           url="https://pr-${PR}-cafecito-preview.${SUBDOMAIN}.workers.dev"
           # The alias URL is stable across pushes, so comment once rather than
@@ -112,5 +117,6 @@ jobs:
           # printf with a single-quoted format string: the body contains
           # backticks, which bash would run as command substitution inside a
           # double-quoted string.
+          # shellcheck disable=SC2016
           body=$(printf '%s\n**Preview:** %s\n\nRuns against the throwaway `cafecito-preview` database, not production. The barista view renders but its API returns 403 — Cloudflare Access does not cover this hostname.\n' "$marker" "$url")
           gh pr comment "$PR" --body "$body"
