@@ -59,8 +59,23 @@ Actions:
 
 | Secret | Where it comes from |
 |---|---|
-| `CLOUDFLARE_API_TOKEN` | Cloudflare dashboard → My Profile → API Tokens → Create Token, with **Workers Scripts: Edit**, **D1: Edit**, and **Account Settings: Read** permissions |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare dashboard → My Profile → API Tokens → Create Token. See the permissions below — it needs zone-scoped ones as well as account-scoped |
 | `CLOUDFLARE_ACCOUNT_ID` | The account id shown in the sidebar of any zone's overview page in the Cloudflare dashboard |
+
+The token needs all five of these:
+
+| Scope | Permission | Why |
+|---|---|---|
+| Account | Workers Scripts → Edit | Upload the Worker |
+| Account | D1 → Edit | Apply migrations |
+| Account | Account Settings → Read | Resolve the account |
+| Zone | Workers Routes → Edit | Attach `cafecito.connick.me` to the Worker |
+| Zone | Zone → Read | Resolve the zone the route belongs to |
+
+Set **Zone Resources** to include the `connick.me` zone. The two zone-scoped
+rows are easy to miss: without them the Worker still uploads successfully and
+the deploy fails only at the very end, on the route, with a bare
+`Authentication error [code: 10000]`.
 
 These are distinct from `COOKIE_SECRET`: `COOKIE_SECRET` is a Worker secret
 set via `wrangler secret put` (see Setup, above) and lives only in
