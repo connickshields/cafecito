@@ -36,6 +36,12 @@
       )
     : [];
 
+  // A drink "requires" milk only while at least one of ITS milks is actually
+  // available. Without the availability half, 86'ing the last applicable milk
+  // leaves Add to Cart permanently disabled with no way forward.
+  $: milkRequired =
+    !!selectedItem?.allows_milk_choice && visibleMilkOptions.some((milk) => milk.available);
+
   let justAddedItemId: number | null = null;
 
   let optionsPollId: NodeJS.Timeout;
@@ -198,7 +204,10 @@
 
             {#if selectedItem.allows_milk_choice}
               <h3 class="text-lg font-semibold mb-2">
-                Select Milk <span class="text-red-400">(required)</span>
+                Select Milk
+                {#if milkRequired}
+                  <span class="text-red-400">(required)</span>
+                {/if}
               </h3>
               <div class="grid grid-cols-3 gap-2 mb-4">
                 {#each visibleMilkOptions as milk (milk.id)}
@@ -249,7 +258,7 @@
               type="button"
               on:click={() => handleAddToCart(selectedItem, true)}
               class="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent sm:ml-3 sm:w-auto"
-              disabled={selectedItem.allows_milk_choice && selectedMilkOptionId === null}
+              disabled={milkRequired && selectedMilkOptionId === null}
             >
               Add to Cart
             </button>
