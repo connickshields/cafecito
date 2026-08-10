@@ -1432,7 +1432,7 @@ const QUEUE_STATS_SQL = `
       FROM orders o
       JOIN order_items oi ON oi.order_id = o.id
      WHERE o.status IN ('pending','in_progress')
-       AND (?1 IS NULL OR o.created_at < (SELECT created_at FROM orders WHERE id = ?1))
+       AND (? IS NULL OR o.created_at < (SELECT created_at FROM orders WHERE id = ?))
   ),
   recent AS (
     SELECT o.id,
@@ -1466,7 +1466,11 @@ const QUEUE_STATS_SQL = `
 `
 
 export async function getQueueStats(db, orderId) {
-  const row = await db.prepare(QUEUE_STATS_SQL).bind(orderId ?? null).first()
+  // Positional `?` bound twice rather than a reused `?1`: numbered-placeholder
+  // reuse works under local miniflare but was never verified against production
+  // D1, and this query feeds a customer-facing wait estimate, so a divergence
+  // would show wrong numbers silently. Positional binding is unambiguous.
+  const row = await db.prepare(QUEUE_STATS_SQL).bind(orderId ?? null, orderId ?? null).first()
   return {
     drinksAhead: row?.drinks_ahead ?? 0,
     activeOrders: row?.active_orders ?? 0,
@@ -1478,7 +1482,7 @@ export async function getQueueStats(db, orderId) {
 - [ ] **Step 4: Run the tests**
 
 Run: `npm run test:worker`
-Expected: PASS. If D1 rejects the `?1` placeholder repeated twice, replace `?1` with `?` in both positions and change the bind to `.bind(orderId ?? null, orderId ?? null)`.
+Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
