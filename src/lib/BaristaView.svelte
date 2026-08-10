@@ -28,18 +28,50 @@
   let menuItems = [];
   let milkOptions = [];
   let customizationOptions = [];
+  // Distinct from "no active orders": a fetch failure must never be
+  // mistaken for a quiet morning.
+  let ordersLoadFailed = false;
+  // Transient feedback for a failed mutation (status change / availability
+  // toggle) so a tap that silently no-ops still tells the barista something
+  // went wrong.
+  let actionError: string | null = null;
+  let actionErrorTimeout: NodeJS.Timeout;
 
   onMount(async () => {
-    await fetchOrders();
-    intervalId = setInterval(fetchOrders, 5000); // Fetch orders every 5 seconds
+    // A rejection on the first load must not prevent polling from starting —
+    // fetchOrders itself never throws (see below), but this guards the
+    // invariant even if that ever changes.
+    try {
+      await fetchOrders();
+    } finally {
+      intervalId = setInterval(fetchOrders, 5000); // Fetch orders every 5 seconds
+    }
   });
 
   onDestroy(() => {
     clearInterval(intervalId);
+    clearTimeout(actionErrorTimeout);
   });
 
+  function showActionError(message: string) {
+    actionError = message;
+    clearTimeout(actionErrorTimeout);
+    actionErrorTimeout = setTimeout(() => {
+      actionError = null;
+    }, 4000);
+  }
+
   async function fetchOrders() {
-    const newOrders = await getOrders();
+    let newOrders;
+    try {
+      newOrders = await getOrders();
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      ordersLoadFailed = true;
+      return;
+    }
+    ordersLoadFailed = false;
+
     newOrders.sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
@@ -130,20 +162,25 @@
   }
 
   async function changeOrderStatus(orderId: number, newStatus: string) {
-    await updateOrderStatus(orderId, newStatus);
-    await fetchOrders(); // This will recalculate all orders and statistics
-    if (selectedOrder && selectedOrder.id === orderId) {
-      if (newStatus === "completed") {
-        selectedOrder = null; // Close the flyout
-      } else {
-        selectedOrder = orders.find((order) => order.id === orderId) || null;
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      await fetchOrders(); // This will recalculate all orders and statistics
+      if (selectedOrder && selectedOrder.id === orderId) {
+        if (newStatus === "completed") {
+          selectedOrder = null; // Close the flyout
+        } else {
+          selectedOrder = orders.find((order) => order.id === orderId) || null;
+        }
       }
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      showActionError("Couldn't update that order — try again.");
     }
   }
 
   function playNewOrderSound() {
-    const audio = new Audio("./assets/sounds/new-order.mp3");
-    audio.play();
+    const audio = new Audio("/assets/sounds/new-order.mp3");
+    audio.play().catch(() => {}); // autoplay restrictions / backgrounded tab: visual carries it
   }
 
   async function loadManagementData() {
@@ -155,23 +192,43 @@
   async function toggleManagement() {
     showManagement = !showManagement;
     if (showManagement) {
-      await loadManagementData();
+      try {
+        await loadManagementData();
+      } catch (error) {
+        console.error("Error loading management data:", error);
+        showActionError("Couldn't load the menu — try again.");
+      }
     }
   }
 
   async function toggleMilkAvailability(milk) {
-    await updateMilkAvailability(milk.id, !milk.available);
-    await loadManagementData();
+    try {
+      await updateMilkAvailability(milk.id, !milk.available);
+      await loadManagementData();
+    } catch (error) {
+      console.error("Error updating milk availability:", error);
+      showActionError("Couldn't update that availability — try again.");
+    }
   }
 
   async function toggleItemAvailability(item) {
-    await updateItemAvailability(item.id, !item.available);
-    await loadManagementData();
+    try {
+      await updateItemAvailability(item.id, !item.available);
+      await loadManagementData();
+    } catch (error) {
+      console.error("Error updating item availability:", error);
+      showActionError("Couldn't update that availability — try again.");
+    }
   }
 
   async function toggleCustomizationAvailability(customization) {
-    await updateCustomizationAvailability(customization.id, !customization.available);
-    await loadManagementData();
+    try {
+      await updateCustomizationAvailability(customization.id, !customization.available);
+      await loadManagementData();
+    } catch (error) {
+      console.error("Error updating customization availability:", error);
+      showActionError("Couldn't update that availability — try again.");
+    }
   }
 </script>
 
@@ -231,6 +288,16 @@
         </div>
       </div>
     </header>
+
+    {#if ordersLoadFailed}
+      <div
+        role="alert"
+        class="bg-red-100 border-b border-red-400 text-red-700 px-4 py-2 text-center text-sm font-medium"
+      >
+        Can't reach the server — this list may be out of date. Check your connection or
+        sign in again.
+      </div>
+    {/if}
 
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <div class="px-4 py-6 sm:px-0">
@@ -472,6 +539,16 @@
             {/each}
           </div>
         </div>
+      </div>
+    </div>
+  {/if}
+
+  {#if actionError}
+    <div class="fixed bottom-4 left-0 right-0 px-4 z-20" transition:fly={{ y: 20, duration: 200 }}>
+      <div
+        class="max-w-md mx-auto bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-md text-center shadow"
+      >
+        {actionError}
       </div>
     </div>
   {/if}

@@ -22,7 +22,9 @@
   let showOrderStatus = initialOrderId !== null;
   let currentOrderId: number | null = initialOrderId;
   let submitting = false;
-  let submitError = false;
+  // Holds the message to show, or null. A string (not a boolean) so the 409
+  // and network-failure paths can render distinct, accurate copy.
+  let submitError: string | null = null;
   let submissionId = null;
   let queueDepth: { drinksAhead: number; activeOrders: number; estMinsPerDrink: number | null } | null = null;
   let pollId: NodeJS.Timeout;
@@ -59,6 +61,7 @@
   }
 
   function addToOrder(item: MenuItem, milkOption, customizations) {
+    submitError = null; // a cart change is a fresh attempt; clear any prior banner
     const newItem: OrderItem = {
       tempId: Date.now(),
       itemId: item.id,
@@ -88,14 +91,35 @@
   }
 
   function removeItem(id: number) {
+    submitError = null; // a cart change is a fresh attempt; clear any prior banner
     orderItems = orderItems.filter((item) => item.tempId !== id);
   }
 
   function updateQuantity(event: CustomEvent<{ tempId: number; quantity: number }>) {
+    submitError = null; // a cart change is a fresh attempt; clear any prior banner
     const { tempId, quantity } = event.detail;
     orderItems = orderItems.map((item) =>
       item.tempId === tempId ? { ...item, quantity } : item
     );
+  }
+
+  // Drops cart lines whose item, milk option, or customization the server
+  // just reported as unavailable (409's `unavailable: [{table, id}, ...]`).
+  // Leaves the cart untouched if the server did not send that detail.
+  function pruneUnavailable(items: OrderItem[], unavailable) {
+    if (!Array.isArray(unavailable) || unavailable.length === 0) return items;
+
+    const badIds = { items: new Set(), milk_options: new Set(), customization_options: new Set() };
+    for (const { table, id } of unavailable) {
+      if (badIds[table]) badIds[table].add(id);
+    }
+
+    return items.filter((item) => {
+      if (badIds.items.has(item.itemId)) return false;
+      if (item.milkOption && badIds.milk_options.has(item.milkOption.id)) return false;
+      if (item.customizations?.some((c) => badIds.customization_options.has(c.id))) return false;
+      return true;
+    });
   }
 
   function toggleCart() {
@@ -107,7 +131,7 @@
     // Reused across retries so a lost response cannot create a second order.
     if (!submissionId) submissionId = crypto.randomUUID();
     submitting = true;
-    submitError = false;
+    submitError = null;
     try {
       const result = await submitOrder(customerName, orderItems, submissionId);
       currentOrderId = result.orderId;
@@ -116,7 +140,24 @@
       submissionId = null;
     } catch (error) {
       console.error("Error submitting order:", error);
-      submitError = true;
+      if (error.status === 409) {
+        // The server never created an order for this submissionId, so it is
+        // NOT safe to keep reusing it: the retry-idempotency guarantee is
+        // "the same order gets at most one row," and after a 409 there is no
+        // order yet to be "the same" as. The next attempt (once the cart is
+        // corrected) is a genuinely new order and needs a fresh id. This is
+        // the only path that resets submissionId.
+        submissionId = null;
+        orderItems = pruneUnavailable(orderItems, error.unavailable);
+        submitError = "Something in your cart just sold out. Remove it and try again.";
+      } else {
+        // Network/5xx: we cannot tell whether the server actually created the
+        // order before the response was lost, so submissionId is deliberately
+        // KEPT. Retrying with the same submissionId lets createOrder's
+        // unique-submission_id check return the original order instead of
+        // creating a duplicate.
+        submitError = "Couldn't send your order — check your connection and try again";
+      }
     } finally {
       submitting = false;
     }
@@ -133,9 +174,6 @@
 
   $: menuUnavailable = !loading && !menuLoadFailed && menuItems.length === 0;
   $: canOrder = !loading && !menuLoadFailed && menuItems.length > 0;
-
-  // Any cart change clears the error banner
-  $: if (orderItems) submitError = false;
 </script>
 
 {#if showOrderStatus && currentOrderId}
@@ -197,7 +235,7 @@
         <div
           class="max-w-3xl mx-auto bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-md text-center"
         >
-          Couldn't send your order — check your connection and try again
+          {submitError}
         </div>
       </div>
     {/if}
