@@ -22,8 +22,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test
+      # Build BEFORE testing. The worker test pool reads wrangler.toml, which
+      # declares [assets] directory = "./dist". On a clean checkout that
+      # directory does not exist yet, so the pool fails to boot with "The
+      # assets directory specified does not exist" and collects zero tests.
+      # This passes locally only because dist/ survives from a previous build.
       - run: npm run build
+      - run: npm test
       - name: Validate wrangler config
         # --no-install pins this to the wrangler version installed by `npm ci`
         # from package.json/devDependencies (currently 4.72.0), never a
