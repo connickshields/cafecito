@@ -65,10 +65,19 @@
       return true;
     } catch (error) {
       console.error("Error saving menu entry:", error);
+      // api.js falls back to "Request failed: <status>" when the response
+      // carried no JSON error field -- that's not worth showing verbatim.
+      // Anything more specific (e.g. a trimmed-to-empty name failing
+      // server-side validation) is worth surfacing so the barista knows
+      // what to fix instead of just "try again".
+      const generic = `Request failed: ${error.status}`;
+      const fallback = "Couldn't save that — try again.";
       showError(
         error.status === 409
           ? "That name is already in use."
-          : "Couldn't save that — try again."
+          : typeof error.message === "string" && error.message && error.message !== generic
+            ? error.message
+            : fallback
       );
       // The editor stays open so nothing typed is lost.
       return false;

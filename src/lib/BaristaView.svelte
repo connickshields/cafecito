@@ -19,9 +19,8 @@
   // Distinct from "no active orders": a fetch failure must never be
   // mistaken for a quiet morning.
   let ordersLoadFailed = false;
-  // Transient feedback for a failed mutation (status change / availability
-  // toggle) so a tap that silently no-ops still tells the barista something
-  // went wrong.
+  // Transient feedback for a failed mutation (status change) so a tap that
+  // silently no-ops still tells the barista something went wrong.
   let actionError: string | null = null;
   let actionErrorTimeout: NodeJS.Timeout;
 

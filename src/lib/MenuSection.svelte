@@ -111,7 +111,6 @@
         {milkOptions}
         {customizationOptions}
         onSave={(fields) => onSave(null, fields)}
-        onArchive={() => onEdit(null)}
         onCancel={() => onEdit(null)}
       />
     </div>

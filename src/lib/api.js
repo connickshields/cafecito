@@ -19,11 +19,11 @@ async function request(path, options = {}) {
   return response.json()
 }
 
-// Menu.svelte polls three getters every 5s, and the barista view polls the
-// same three. /api/menu returns every row (available and not) for both
+// Menu.svelte polls two getters every 5s; BaristaView doesn't poll the menu
+// at all. /api/menu returns every row (available and not) for both
 // audiences alike — there is no confidentiality boundary on the menu, only
-// a display one — so all callers share a single in-flight request instead of
-// firing three (or six) round-trips per poll.
+// a display one — so callers share a single in-flight request instead of
+// firing one per getter per poll.
 let menuInFlight = null
 
 function fetchMenu() {
