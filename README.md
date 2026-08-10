@@ -51,6 +51,34 @@ Each needs a policy allowing the barista email addresses. Copy the Application
 Audience (AUD) tag into `ACCESS_AUD` and the team domain into
 `ACCESS_TEAM_DOMAIN` in `wrangler.toml`.
 
+### Managing the menu
+
+The barista page owns the menu. Sign in at `/barista` and use the gear icon:
+drinks, milk options, and customizations can each be added, edited, reordered,
+and archived without touching the database.
+
+**Nothing is ever deleted.** `order_items` holds a foreign key into `items`,
+and the analytics page reads drink names through that join, so a delete would
+rewrite history. Archiving removes a row from the customer menu and hides it
+behind the "Archived" disclosure in the manager; restoring it brings it back
+along with every option it was linked to.
+
+**Which milks and syrups a drink offers is per-drink**, stored in
+`item_milk_options` and `item_customization_options`. A drink with no linked
+milks takes no milk. The older `items.allows_milk_choice` and
+`items.allows_customizations` columns are superseded by those tables and are no
+longer read — the API still returns fields by those names, now derived. They
+are deliberately left in the schema: migrations run *before* the new Worker
+deploys, so dropping them in the same change would leave live customers with no
+milk picker for the seconds in between.
+
+**A customization's "heading" is the literal text shown above it** on the
+customer menu (`Syrups`, `Toppings`, …). There is no fixed list — type a new
+heading and a new group appears.
+
+Drinks are ordered by `sort_order`, set with the ▲▼ buttons in the manager, not
+alphabetically.
+
 ### GitHub Actions secrets
 
 The `deploy` job in `.github/workflows/deploy.yml` needs two **repository**
