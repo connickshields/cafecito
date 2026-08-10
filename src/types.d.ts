@@ -7,8 +7,11 @@ export type MenuItem = {
     description: string;
     size: number;
     available: boolean;
+    // Derived by the Worker from the item_* link tables, not stored columns.
     allows_milk_choice: boolean;
     allows_customizations: boolean;
+    milkOptionIds: number[];
+    customizationOptionIds: number[];
 };
   
 export type OrderItem = {

@@ -1,20 +1,11 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { fly } from "svelte/transition";
-  import {
-    getOrders,
-    updateOrderStatus,
-    signOut,
-    getMenuItems,
-    getMilkOptions,
-    getCustomizationOptions,
-    updateMilkAvailability,
-    updateItemAvailability,
-    updateCustomizationAvailability,
-  } from "./api";
+  import { getOrders, updateOrderStatus, signOut } from "./api";
   import type { Order } from "../types";
   import Icons from "./Icons.svelte";
   import Analytics from "./Analytics.svelte";
+  import MenuManager from "./MenuManager.svelte";
   import { formatDuration, fulfillmentDurations } from "./analytics";
 
   let orders: Order[] = [];
@@ -24,16 +15,12 @@
   let intervalId: NodeJS.Timeout;
   let newOrderIds: Set<number> = new Set();
   let showAnalytics = false;
-  let showManagement = false;
-  let menuItems = [];
-  let milkOptions = [];
-  let customizationOptions = [];
+  let showMenuManager = false;
   // Distinct from "no active orders": a fetch failure must never be
   // mistaken for a quiet morning.
   let ordersLoadFailed = false;
-  // Transient feedback for a failed mutation (status change / availability
-  // toggle) so a tap that silently no-ops still tells the barista something
-  // went wrong.
+  // Transient feedback for a failed mutation (status change) so a tap that
+  // silently no-ops still tells the barista something went wrong.
   let actionError: string | null = null;
   let actionErrorTimeout: NodeJS.Timeout;
 
@@ -183,57 +170,12 @@
     audio.play().catch(() => {}); // autoplay restrictions / backgrounded tab: visual carries it
   }
 
-  async function loadManagementData() {
-    menuItems = await getMenuItems(true);
-    milkOptions = await getMilkOptions(true);
-    customizationOptions = await getCustomizationOptions(true);
-  }
-
-  async function toggleManagement() {
-    showManagement = !showManagement;
-    if (showManagement) {
-      try {
-        await loadManagementData();
-      } catch (error) {
-        console.error("Error loading management data:", error);
-        showActionError("Couldn't load the menu — try again.");
-      }
-    }
-  }
-
-  async function toggleMilkAvailability(milk) {
-    try {
-      await updateMilkAvailability(milk.id, !milk.available);
-      await loadManagementData();
-    } catch (error) {
-      console.error("Error updating milk availability:", error);
-      showActionError("Couldn't update that availability — try again.");
-    }
-  }
-
-  async function toggleItemAvailability(item) {
-    try {
-      await updateItemAvailability(item.id, !item.available);
-      await loadManagementData();
-    } catch (error) {
-      console.error("Error updating item availability:", error);
-      showActionError("Couldn't update that availability — try again.");
-    }
-  }
-
-  async function toggleCustomizationAvailability(customization) {
-    try {
-      await updateCustomizationAvailability(customization.id, !customization.available);
-      await loadManagementData();
-    } catch (error) {
-      console.error("Error updating customization availability:", error);
-      showActionError("Couldn't update that availability — try again.");
-    }
-  }
 </script>
 
 {#if showAnalytics}
   <Analytics onClose={() => (showAnalytics = false)} />
+{:else if showMenuManager}
+  <MenuManager onClose={() => (showMenuManager = false)} />
 {:else}
 <div class="min-h-screen bg-gray-100 flex">
   <!-- Main content -->
@@ -272,9 +214,9 @@
             <Icons name="chart" size={24} />
           </button>
           <button
-            on:click={toggleManagement}
+            on:click={() => (showMenuManager = true)}
             class="text-gray-600 hover:text-gray-900"
-            aria-label="Manage Menu"
+            aria-label="Manage menu"
           >
             <Icons name="settings" size={24} />
           </button>
@@ -460,84 +402,6 @@
               Complete Order
             </button>
           {/if}
-        </div>
-      </div>
-    </div>
-  {/if}
-
-  {#if showManagement}
-    <div
-      class="w-1/4 bg-white border-l border-gray-200 overflow-y-auto"
-      transition:fly={{ x: 300, duration: 300 }}
-    >
-      <div class="p-4">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-lg font-semibold">Menu Management</h2>
-          <button on:click={toggleManagement} class="text-gray-500 hover:text-gray-700">
-            <Icons name="close" size={24} />
-          </button>
-        </div>
-
-        <div class="space-y-6">
-          <!-- Beverages -->
-          <div>
-            <h3 class="text-md font-bold mb-2">Beverages</h3>
-            {#each menuItems as item}
-              <div class="flex justify-between items-center py-2">
-                <span>{item.name}</span>
-                <button
-                  class="px-3 py-1 rounded-full text-sm font-medium"
-                  class:bg-green-100={item.available}
-                  class:text-green-800={item.available}
-                  class:bg-red-100={!item.available}
-                  class:text-red-800={!item.available}
-                  on:click={() => toggleItemAvailability(item)}
-                >
-                  {item.available ? "Available" : "Unavailable"}
-                </button>
-              </div>
-            {/each}
-          </div>
-
-          <!-- Milk Options -->
-          <div>
-            <h3 class="text-md font-bold mb-2">Milk Options</h3>
-            {#each milkOptions as milk}
-              <div class="flex justify-between items-center py-2">
-                <span>{milk.name}</span>
-                <button
-                  class="px-3 py-1 rounded-full text-sm font-medium"
-                  class:bg-green-100={milk.available}
-                  class:text-green-800={milk.available}
-                  class:bg-red-100={!milk.available}
-                  class:text-red-800={!milk.available}
-                  on:click={() => toggleMilkAvailability(milk)}
-                >
-                  {milk.available ? "Available" : "Unavailable"}
-                </button>
-              </div>
-            {/each}
-          </div>
-
-          <!-- Customizations -->
-          <div>
-            <h3 class="text-md font-bold mb-2">Customizations</h3>
-            {#each customizationOptions as customization}
-              <div class="flex justify-between items-center py-2">
-                <span>{customization.name}</span>
-                <button
-                  class="px-3 py-1 rounded-full text-sm font-medium"
-                  class:bg-green-100={customization.available}
-                  class:text-green-800={customization.available}
-                  class:bg-red-100={!customization.available}
-                  class:text-red-800={!customization.available}
-                  on:click={() => toggleCustomizationAvailability(customization)}
-                >
-                  {customization.available ? "Available" : "Unavailable"}
-                </button>
-              </div>
-            {/each}
-          </div>
         </div>
       </div>
     </div>

@@ -19,11 +19,11 @@ async function request(path, options = {}) {
   return response.json()
 }
 
-// Menu.svelte polls three getters every 5s, and the barista view polls the
-// same three. /api/menu returns every row (available and not) for both
+// Menu.svelte polls two getters every 5s; BaristaView doesn't poll the menu
+// at all. /api/menu returns every row (available and not) for both
 // audiences alike — there is no confidentiality boundary on the menu, only
-// a display one — so all callers share a single in-flight request instead of
-// firing three (or six) round-trips per poll.
+// a display one — so callers share a single in-flight request instead of
+// firing one per getter per poll.
 let menuInFlight = null
 
 function fetchMenu() {
@@ -96,24 +96,32 @@ export async function updateOrderStatus(orderId, newStatus) {
   })
 }
 
-export async function updateItemAvailability(itemId, available) {
-  return request(`/api/barista/items/${itemId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ available }),
+// Menu management. These deliberately bypass the fetchMenu() de-duplication
+// above: that cache exists to collapse the customer view's three polls into one
+// request, and the manager needs archived rows and sort order, which the
+// customer payload does not carry.
+export async function getMenuForManagement() {
+  return request('/api/barista/menu')
+}
+
+export async function createMenuEntry(kind, fields) {
+  return request(`/api/barista/menu/${kind}`, {
+    method: 'POST',
+    body: JSON.stringify(fields),
   })
 }
 
-export async function updateMilkAvailability(milkId, available) {
-  return request(`/api/barista/milk/${milkId}`, {
+export async function updateMenuEntry(kind, id, fields) {
+  return request(`/api/barista/menu/${kind}/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ available }),
+    body: JSON.stringify(fields),
   })
 }
 
-export async function updateCustomizationAvailability(customizationId, available) {
-  return request(`/api/barista/customizations/${customizationId}`, {
+export async function reorderMenuEntries(kind, ids) {
+  return request(`/api/barista/menu/${kind}/order`, {
     method: 'PATCH',
-    body: JSON.stringify({ available }),
+    body: JSON.stringify({ ids }),
   })
 }
 

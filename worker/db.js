@@ -1,28 +1,3 @@
-// SQLite stores booleans as 0/1; the Svelte components expect real booleans.
-const BOOLEAN_COLUMNS = ['available', 'allows_milk_choice', 'allows_customizations']
-
-function toBooleans(row) {
-  const out = { ...row }
-  for (const column of BOOLEAN_COLUMNS) {
-    if (column in out) out[column] = out[column] === 1
-  }
-  return out
-}
-
-export async function getMenu(db) {
-  const [items, milkOptions, customizationOptions] = await db.batch([
-    db.prepare(`SELECT * FROM items ORDER BY name`),
-    db.prepare(`SELECT * FROM milk_options ORDER BY name`),
-    db.prepare(`SELECT * FROM customization_options ORDER BY name`),
-  ])
-
-  return {
-    items: items.results.map(toBooleans),
-    milkOptions: milkOptions.results.map(toBooleans),
-    customizationOptions: customizationOptions.results.map(toBooleans),
-  }
-}
-
 // Collapses the flat order x item x customization join into nested objects.
 // Shared by both order shapes; `detail` selects the field naming.
 function groupRows(rows, { detail }) {
@@ -144,18 +119,6 @@ export async function updateOrderStatus(db, orderId, status) {
   return result.meta.changes > 0
 }
 
-const AVAILABILITY_TABLES = new Set(['items', 'milk_options', 'customization_options'])
-
-export async function updateAvailability(db, table, id, available) {
-  // Table names cannot be bound as parameters, so allowlist them.
-  if (!AVAILABILITY_TABLES.has(table)) throw new Error(`Unknown table: ${table}`)
-  const result = await db
-    .prepare(`UPDATE ${table} SET available = ? WHERE id = ?`)
-    .bind(available ? 1 : 0, id)
-    .run()
-  return result.meta.changes > 0
-}
-
 // Port of the get_queue_stats plpgsql function.
 // Drain rate: over the last 5 completions within 90 minutes, drinks completed
 // after the earliest completion divided by the minutes between first and last.
@@ -221,7 +184,7 @@ async function assertAvailable(db, table, ids) {
   if (ids.length === 0) return []
   const placeholders = ids.map(() => '?').join(',')
   const { results } = await db
-    .prepare(`SELECT id FROM ${table} WHERE id IN (${placeholders}) AND available = 1`)
+    .prepare(`SELECT id FROM ${table} WHERE id IN (${placeholders}) AND available = 1 AND archived = 0`)
     .bind(...ids)
     .all()
   const found = new Set(results.map((r) => r.id))

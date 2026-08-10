@@ -1,21 +1,9 @@
 import { fetchAccessJwks, verifyAccessJwt } from '../auth.js'
-import { getOrders, updateAvailability, updateOrderStatus } from '../db.js'
+import { getOrders, updateOrderStatus } from '../db.js'
+import { readJsonBody } from './body.js'
+import { handleMenuAdmin } from './menu.js'
 
 const VALID_STATUSES = new Set(['pending', 'in_progress', 'completed', 'cancelled'])
-
-const AVAILABILITY_ROUTES = {
-  items: 'items',
-  milk: 'milk_options',
-  customizations: 'customization_options',
-}
-
-// A parse failure (invalid JSON) and a valid parse of a non-object (null, a
-// bare number, a bare string, ...) must both be treated as "no usable body"
-// so the field checks below (body.status, body.available) can never throw.
-async function readJsonBody(request) {
-  const body = await request.json().catch(() => null)
-  return typeof body === 'object' && body !== null ? body : {}
-}
 
 // The security boundary. Every /api/barista/* request passes through here
 // before any handler runs, so a new route cannot ship unprotected.
@@ -35,6 +23,12 @@ export async function handleBarista(request, env, url) {
   const path = url.pathname
   const method = request.method
 
+  // Everything under /api/barista/menu is menu management. It stays inside
+  // this handler so it inherits the mount-point Access gate in index.js.
+  if (path === '/api/barista/menu' || path.startsWith('/api/barista/menu/')) {
+    return handleMenuAdmin(request, env, url)
+  }
+
   if (path === '/api/barista/orders' && method === 'GET') {
     return { status: 200, body: await getOrders(env.DB) }
   }
@@ -46,17 +40,6 @@ export async function handleBarista(request, env, url) {
       return { status: 400, body: { error: 'Invalid status' } }
     }
     const updated = await updateOrderStatus(env.DB, Number(statusMatch[1]), body.status)
-    return updated ? { status: 200, body: { ok: true } } : { status: 404, body: { error: 'Not found' } }
-  }
-
-  const availabilityMatch = path.match(/^\/api\/barista\/(items|milk|customizations)\/(\d+)$/)
-  if (availabilityMatch && method === 'PATCH') {
-    const body = await readJsonBody(request)
-    if (typeof body.available !== 'boolean') {
-      return { status: 400, body: { error: 'available must be a boolean' } }
-    }
-    const table = AVAILABILITY_ROUTES[availabilityMatch[1]]
-    const updated = await updateAvailability(env.DB, table, Number(availabilityMatch[2]), body.available)
     return updated ? { status: 200, body: { ok: true } } : { status: 404, body: { error: 'Not found' } }
   }
 

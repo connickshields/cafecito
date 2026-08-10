@@ -5,7 +5,6 @@ import {
   getActiveOrder,
   getOrderDetails,
   getOrders,
-  updateAvailability,
   updateOrderStatus,
 } from '../../worker/db.js'
 
@@ -114,18 +113,5 @@ describe('updateOrderStatus', () => {
 
   it('returns false for an unknown order', async () => {
     expect(await updateOrderStatus(env.DB, 99999, 'completed')).toBe(false)
-  })
-})
-
-describe('updateAvailability', () => {
-  it('toggles an item', async () => {
-    const item = await env.DB.prepare('SELECT id FROM items WHERE name = ?').bind('Espresso').first()
-    expect(await updateAvailability(env.DB, 'items', item.id, false)).toBe(true)
-    const row = await env.DB.prepare('SELECT available FROM items WHERE id = ?').bind(item.id).first()
-    expect(row.available).toBe(0)
-  })
-
-  it('rejects a table name that is not allowlisted', async () => {
-    await expect(updateAvailability(env.DB, 'orders', 1, false)).rejects.toThrow(/table/i)
   })
 })
