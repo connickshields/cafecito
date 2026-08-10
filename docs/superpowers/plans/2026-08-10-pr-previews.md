@@ -55,7 +55,9 @@ These cannot be done by an implementer; they need the Cloudflare account and the
 Establish the baseline before changing anything.
 
 Run: `wrangler deploy --dry-run`
-Expected: succeeds, and the output mentions the custom domain `cafecito.connick.me`.
+Expected: exits 0. Note that it does **not** print route or custom-domain
+information — `--dry-run` makes no API calls. This step only confirms the
+config parses today, so a later failure is attributable to your change.
 
 - [ ] **Step 2: Add the preview environment**
 
@@ -95,15 +97,32 @@ ACCESS_AUD = "7ba1daa2e0e4b0bd9024e83df23c27d45d40d3e92daffeee2a56bbdf0851bd22"
 
 - [ ] **Step 3: Verify the preview environment does NOT claim the production domain**
 
-This is the acceptance check for the whole task.
+This is the acceptance check for the whole task, and it must be done by
+**reading the file**, not by running wrangler.
 
-Run: `wrangler deploy --env preview --dry-run 2>&1 | grep -i "reassign\|custom domain\|route"`
-Expected: **no output**. Any line containing "reassign" means `routes = []` is missing or misplaced — stop and fix it before going further.
+Run: `grep -n -A3 '^\[env.preview\]' wrangler.toml`
+
+Expected: `routes = []` appears in those lines — after the `[env.preview]`
+header and **before** `[env.preview.assets]`. TOML scoping is the trap: a key
+written after a subtable header belongs to that subtable, so `routes = []`
+placed lower in the block is silently inert while looking present.
+
+**Do not substitute a `--dry-run` check here.** Verified during execution: with
+`routes = []` deliberately removed, `wrangler deploy --env preview --dry-run`
+produces output identical to the correct case on both wrangler 4.72.0 and
+4.120.0 — no warning, no route text. `--dry-run` makes no API calls, so it
+cannot know which Worker currently owns a route. A dry-run check here would
+pass while production was one deploy away from losing its domain.
 
 - [ ] **Step 4: Verify production is still intact**
 
-Run: `wrangler deploy --dry-run 2>&1 | grep -i "cafecito.connick.me"`
-Expected: the custom domain still appears, exactly as in Step 1.
+Wrangler cannot show you this — verify it from the diff instead.
+
+Run: `git diff wrangler.toml | grep '^-'`
+
+Expected: **no output** apart from the `--- a/wrangler.toml` header line. This
+change must be purely additive; a single removed line means the top-level
+production config was disturbed.
 
 - [ ] **Step 5: Verify the preview binds the preview database**
 
@@ -261,22 +280,58 @@ Append to `.github/workflows/deploy.yml`, after the `deploy` job. Do not modify 
           gh pr comment "$PR" --body "$body"
 ```
 
-- [ ] **Step 2: Validate the workflow parses**
+- [ ] **Step 2: Silence the new "multiple environments" warning on the existing jobs**
+
+Adding `[env.preview]` in Task 1 made the production commands ambiguous.
+`wrangler deploy --dry-run` in `verify` and `wrangler deploy` in `deploy` now
+print, on every run:
+
+```
+▲ [WARNING] Multiple environments are defined in the Wrangler configuration
+file, but no target environment was specified for the deploy command.
+```
+
+It is harmless — exit code 0, and both still resolve to the top-level
+production bindings — but it is permanent noise on exactly the commands whose
+clean output people are supposed to keep scrutinising, and noise there erodes
+the habit the `routes = []` design depends on.
+
+Add `--env ""` to both existing commands, making the production target
+explicit. Change nothing else about those two jobs:
+
+```yaml
+        run: npx --no-install wrangler deploy --env "" --dry-run
+```
+
+```yaml
+        run: npx --no-install wrangler deploy --env ""
+```
+
+Then confirm the warning is gone locally:
+
+Run: `npx wrangler deploy --env "" --dry-run 2>&1 | grep -i "multiple environments"`
+Expected: **no output**.
+
+Note this uses `npx wrangler` deliberately, not the global install — it pins
+the check to 4.72.0, the version CI actually runs. The globally installed
+wrangler is a different version.
+
+- [ ] **Step 3: Validate the workflow parses**
 
 Run: `actionlint .github/workflows/deploy.yml`
 Expected: no output. If `actionlint` is unavailable, run `python3 -c "import yaml;yaml.safe_load(open('.github/workflows/deploy.yml'));print('ok')"` instead.
 
-- [ ] **Step 3: Confirm the existing jobs are unchanged**
+- [ ] **Step 4: Confirm the existing jobs are otherwise unchanged**
 
 Run: `git diff .github/workflows/deploy.yml | grep -E "^-" | grep -v "^---"`
 Expected: **no output**. This change is purely additive; any removed line means an existing job was disturbed.
 
-- [ ] **Step 4: Confirm the suites and build are unaffected**
+- [ ] **Step 5: Confirm the suites and build are unaffected**
 
 Run: `npm run build && npm test`
 Expected: build succeeds, unit 57 pass, worker 62 pass.
 
-- [ ] **Step 5: Document preview behavior and the reset procedure**
+- [ ] **Step 6: Document preview behavior and the reset procedure**
 
 Append to the README's "PR previews" section from Task 1:
 
@@ -304,7 +359,7 @@ alone are not a reason to reset — the queue banner and wait estimate need
 orders before they show anything interesting.
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add .github/workflows/deploy.yml README.md
