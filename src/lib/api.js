@@ -19,32 +19,38 @@ async function request(path, options = {}) {
   return response.json()
 }
 
-// Menu.svelte polls three getters every 5s. Coalescing them onto one in-flight
-// request turns three round-trips into one.
+// Menu.svelte polls three getters every 5s, and the barista view polls the
+// same three. /api/menu returns every row (available and not) for both
+// audiences alike — there is no confidentiality boundary on the menu, only
+// a display one — so all callers share a single in-flight request instead of
+// firing three (or six) round-trips per poll.
 let menuInFlight = null
 
-function fetchMenu(includeUnavailable) {
-  const path = includeUnavailable ? '/api/barista/menu' : '/api/menu'
-  if (!includeUnavailable && menuInFlight) return menuInFlight
+function fetchMenu() {
+  if (menuInFlight) return menuInFlight
 
-  const promise = request(path).finally(() => {
+  const promise = request('/api/menu').finally(() => {
     if (menuInFlight === promise) menuInFlight = null
   })
 
-  if (!includeUnavailable) menuInFlight = promise
+  menuInFlight = promise
   return promise
 }
 
+function onlyAvailable(rows, includeUnavailable) {
+  return includeUnavailable ? rows : rows.filter((row) => row.available)
+}
+
 export async function getMenuItems(includeUnavailable = false) {
-  return (await fetchMenu(includeUnavailable)).items
+  return onlyAvailable((await fetchMenu()).items, includeUnavailable)
 }
 
 export async function getMilkOptions(includeUnavailable = false) {
-  return (await fetchMenu(includeUnavailable)).milkOptions
+  return onlyAvailable((await fetchMenu()).milkOptions, includeUnavailable)
 }
 
 export async function getCustomizationOptions(includeUnavailable = false) {
-  return (await fetchMenu(includeUnavailable)).customizationOptions
+  return onlyAvailable((await fetchMenu()).customizationOptions, includeUnavailable)
 }
 
 export async function submitOrder(customerName, orderItems, submissionId = crypto.randomUUID()) {

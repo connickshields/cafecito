@@ -18,7 +18,6 @@ describe('barista routes without Access', () => {
       ['PATCH', '/api/barista/items/1'],
       ['PATCH', '/api/barista/milk/1'],
       ['PATCH', '/api/barista/customizations/1'],
-      ['GET', '/api/barista/menu'],
     ]
 
     for (const [method, path] of routes) {

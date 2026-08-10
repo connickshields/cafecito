@@ -22,13 +22,23 @@ describe('GET /api/menu', () => {
     expect(body.items.length).toBeGreaterThan(0)
     expect(body.milkOptions.length).toBeGreaterThan(0)
     expect(body.customizationOptions.length).toBeGreaterThan(0)
-    expect(body.items.every((i) => i.available === true)).toBe(true)
   })
 
-  it('ignores include_unavailable for customers', async () => {
-    const response = await SELF.fetch(`${ORIGIN}/api/menu?include_unavailable=1`)
+  // There is no confidentiality boundary on the menu, only a display one:
+  // Menu.svelte (a customer-facing component) needs unavailable milk and
+  // customization rows to render them greyed out, so a plain customer
+  // session -- no Cf-Access-Jwt-Assertion header at all -- must be able to
+  // see them too.
+  it('returns unavailable rows, with correct flags, to a plain customer session', async () => {
+    const response = await SELF.fetch(`${ORIGIN}/api/menu`)
     const body = await response.json()
-    expect(body.items.every((i) => i.available === true)).toBe(true)
+
+    const soy = body.milkOptions.find((m) => m.name === 'Soy')
+    expect(soy).toBeDefined()
+    expect(soy.available).toBe(false)
+
+    const unavailableCustomizations = body.customizationOptions.filter((c) => c.available === false)
+    expect(unavailableCustomizations.length).toBeGreaterThan(0)
   })
 })
 

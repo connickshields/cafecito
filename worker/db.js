@@ -9,12 +9,11 @@ function toBooleans(row) {
   return out
 }
 
-export async function getMenu(db, includeUnavailable) {
-  const filter = includeUnavailable ? '' : 'WHERE available = 1'
+export async function getMenu(db) {
   const [items, milkOptions, customizationOptions] = await db.batch([
-    db.prepare(`SELECT * FROM items ${filter} ORDER BY name`),
-    db.prepare(`SELECT * FROM milk_options ${filter} ORDER BY name`),
-    db.prepare(`SELECT * FROM customization_options ${filter} ORDER BY name`),
+    db.prepare(`SELECT * FROM items ORDER BY name`),
+    db.prepare(`SELECT * FROM milk_options ORDER BY name`),
+    db.prepare(`SELECT * FROM customization_options ORDER BY name`),
   ])
 
   return {

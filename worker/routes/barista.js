@@ -1,5 +1,5 @@
 import { fetchAccessJwks, verifyAccessJwt } from '../auth.js'
-import { getMenu, getOrders, updateAvailability, updateOrderStatus } from '../db.js'
+import { getOrders, updateAvailability, updateOrderStatus } from '../db.js'
 
 const VALID_STATUSES = new Set(['pending', 'in_progress', 'completed', 'cancelled'])
 
@@ -37,10 +37,6 @@ export async function handleBarista(request, env, url) {
 
   if (path === '/api/barista/orders' && method === 'GET') {
     return { status: 200, body: await getOrders(env.DB) }
-  }
-
-  if (path === '/api/barista/menu' && method === 'GET') {
-    return { status: 200, body: await getMenu(env.DB, true) }
   }
 
   const statusMatch = path.match(/^\/api\/barista\/orders\/(\d+)$/)
