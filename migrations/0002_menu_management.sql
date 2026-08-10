@@ -58,9 +58,17 @@ SELECT i.id, c.id FROM items i CROSS JOIN customization_options c
 -- display -- no title-casing, no pluralization, no mapping table. Naive
 -- pluralization would render 'coffee' as "Coffees"; a hard-coded enum would
 -- break the first time a new type is invented.
-UPDATE customization_options SET type = 'Syrups'   WHERE type = 'syrup';
-UPDATE customization_options SET type = 'Toppings' WHERE type = 'topping';
-UPDATE customization_options SET type = 'Coffee'   WHERE type = 'coffee';
+UPDATE customization_options SET type = 'Syrups'   WHERE LOWER(type) IN ('syrup','syrups');
+UPDATE customization_options SET type = 'Toppings' WHERE LOWER(type) IN ('topping','toppings');
+UPDATE customization_options SET type = 'Coffee'   WHERE LOWER(type) IN ('coffee','coffees');
+
+-- Anything this migration does not recognise still becomes a customer-facing
+-- heading verbatim, so capitalise it rather than shipping a lowercase slug to
+-- the menu. One-time cleanup only: from here on the barista types the heading
+-- they want and it is stored exactly as typed.
+UPDATE customization_options
+   SET type = UPPER(SUBSTR(type, 1, 1)) || SUBSTR(type, 2)
+ WHERE type <> UPPER(SUBSTR(type, 1, 1)) || SUBSTR(type, 2);
 
 -- items.allows_milk_choice and items.allows_customizations are superseded by
 -- the join tables above and are no longer read. They are deliberately NOT

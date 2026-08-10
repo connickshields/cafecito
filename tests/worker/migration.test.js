@@ -86,6 +86,27 @@ describe('0002_menu_management', () => {
     expect(results.map((r) => r.type)).toEqual(['Coffee', 'Syrups', 'Toppings'])
   })
 
+  // The migration itself already ran against the seed data, so this cannot
+  // exercise the migration run for a type it never saw. Instead it applies
+  // the same UPDATE expression the migration uses to a freshly inserted row,
+  // proving the capitalisation branch's behaviour directly.
+  it('capitalises a type the rewrite list does not recognise', async () => {
+    await env.DB.prepare(
+      "INSERT INTO customization_options (name, type) VALUES ('Cinnamon Dust', 'sauce')"
+    ).run()
+
+    await env.DB.prepare(
+      `UPDATE customization_options
+          SET type = UPPER(SUBSTR(type, 1, 1)) || SUBSTR(type, 2)
+        WHERE type <> UPPER(SUBSTR(type, 1, 1)) || SUBSTR(type, 2)`
+    ).run()
+
+    const row = await env.DB.prepare(
+      "SELECT type FROM customization_options WHERE name = 'Cinnamon Dust'"
+    ).first()
+    expect(row.type).toBe('Sauce')
+  })
+
   it('defaults archived to 0 and rejects any other value', async () => {
     const row = await env.DB.prepare('SELECT archived FROM items WHERE name = ?').bind('Latte').first()
     expect(row.archived).toBe(0)
