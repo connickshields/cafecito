@@ -26,12 +26,12 @@
   // A drink now carries its own applicable options, so the pickers show that
   // subset rather than everything on the menu.
   $: visibleMilkOptions = selectedItem
-    ? milkOptions.filter((milk) => selectedItem.milkOptionIds.includes(milk.id))
+    ? milkOptions.filter((milk) => (selectedItem.milkOptionIds ?? []).includes(milk.id))
     : [];
   $: visibleCustomizationGroups = selectedItem
     ? groupByType(
         customizationOptions.filter((option) =>
-          selectedItem.customizationOptionIds.includes(option.id)
+          (selectedItem.customizationOptionIds ?? []).includes(option.id)
         )
       )
     : [];
@@ -56,15 +56,31 @@
     } catch (e) {
       return; // keep last known options
     }
+    // selectedItem is a reference into the menuItems prop, which CustomerView
+    // replaces wholesale on every poll. Without this resync it stays a frozen
+    // snapshot for the life of the modal, and the applicability pruning below
+    // could never fire.
+    if (selectedItem) {
+      const fresh = menuItems.find((item) => item.id === selectedItem.id);
+      if (!fresh) {
+        // The drink was archived or made unavailable while its modal was open.
+        selectedItem = null;
+        showCustomizationModal = false;
+        return;
+      }
+      selectedItem = fresh;
+    }
     // Selections in the open customize modal must not point at 86'd options
     if (selectedMilkOptionId !== null) {
       const milk = milkOptions.find((m) => m.id === selectedMilkOptionId);
-      if (!milk || !milk.available) selectedMilkOptionId = null;
+      const applies =
+        !selectedItem || (selectedItem.milkOptionIds ?? []).includes(selectedMilkOptionId);
+      if (!milk || !milk.available || !applies) selectedMilkOptionId = null;
     }
     selectedCustomizationOptionIds = selectedCustomizationOptionIds.filter(
       (id) =>
         customizationOptions.some((option) => option.id === id) &&
-        (!selectedItem || selectedItem.customizationOptionIds.includes(id))
+        (!selectedItem || (selectedItem.customizationOptionIds ?? []).includes(id))
     );
   }
 
