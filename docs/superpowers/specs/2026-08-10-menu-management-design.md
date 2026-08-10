@@ -318,8 +318,9 @@ intact and shows the transient error banner — the same pattern
 - **`src/lib/api.js`** — add `getMenuForManagement`, `createMenuEntry`,
   `updateMenuEntry`, `reorderMenuEntries`; remove the three availability
   functions.
-- **`src/types.d.ts`** — `MenuItem` gains `milkOptionIds`,
-  `customizationOptionIds`, `sortOrder`, `archived`.
+- **`src/types.d.ts`** — `MenuItem` gains `milkOptionIds` and
+  `customizationOptionIds`. The customer payload deliberately carries neither
+  `sortOrder` nor `archived`.
 
 ### 4.4 Grouping helper
 
@@ -344,9 +345,10 @@ manager use this helper, so the two views group identically.
   the 5-second poll). In-flight orders containing it still display its name.
 - Archiving a **milk or customization** removes it from every drink's picker
   without unlinking it. Restoring brings the links back exactly as they were.
-- `CustomerView.svelte`'s existing stale-selection pruning (line 112) already
-  drops cart entries whose ids vanish from the menu, so a mid-session archive
-  is handled with no new code.
+- `CustomerView.svelte` does not prune the cart on poll. A mid-session archive
+  or 86'ing surfaces only at submit time: the Worker rejects the order with a
+  409 listing the now-unavailable rows, `pruneUnavailable` removes exactly
+  those from the cart, and the customer sees a "sold out" notice.
 
 ---
 
