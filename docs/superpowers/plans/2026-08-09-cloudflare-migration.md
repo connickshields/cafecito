@@ -643,6 +643,17 @@ describe('verifyAccessJwt', () => {
     expect(await verifyAccessJwt(token, wrongKid, AUD)).toBeNull()
   })
 
+  // Also required (added in fix round 1, see commit bbb17f5 for the landed
+  // version): tokens whose header or payload segment is base64url("null"),
+  // each asserting verifyAccessJwt RESOLVES to null rather than rejecting —
+  // assert on the resolved value, since merely awaiting passes either way.
+  //
+  // And a genuine algorithm-confusion test: header alg "HS256" carrying a
+  // VALID HMAC signature computed over the signing input using the RSA public
+  // key's own modulus bytes as the HMAC secret. The signature must actually be
+  // valid under the attacker's chosen algorithm — the test below is NOT that
+  // test, because its empty signature would be rejected even with the alg
+  // check deleted.
   it('rejects null, garbage, and alg-none tokens', async () => {
     const { jwks } = await makeAccessToken()
     expect(await verifyAccessJwt(null, jwks, AUD)).toBeNull()
@@ -685,6 +696,13 @@ export async function verifyAccessJwt(token, jwks, aud, now = Date.now()) {
   } catch {
     return null
   }
+
+  // JSON.parse SUCCEEDS on the literal `null`, so a segment of
+  // base64url("null") slips past the try/catch and then throws a TypeError on
+  // the first property access. Note typeof null === 'object', so the explicit
+  // null comparison is required, not redundant.
+  if (typeof header !== 'object' || header === null) return null
+  if (typeof payload !== 'object' || payload === null) return null
 
   // Only RS256 is ever accepted — never trust the token's own alg claim to
   // select a weaker algorithm, and never accept "none".
