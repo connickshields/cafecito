@@ -19,7 +19,17 @@ async function seedOrder({ customerId = 'c', status = 'pending', drinks = 1, cre
   return order.id
 }
 
-const minutesAgo = (n) => new Date(Date.now() - n * 60_000).toISOString().replace(/\.\d{3}Z$/, 'Z')
+// Pinned once, not per call. Each test seeds several rows through sequential
+// awaits with a database round trip between them, so a per-call Date.now()
+// lets the seeds straddle a one-second boundary: the span between the first
+// and last completion comes out 1201s instead of 1200, and the drain rate
+// drifts to 5.0041666 against a toBeCloseTo(5, 5) assertion. That failed a
+// production deploy on a slow CI runner while passing locally every time.
+// One base makes the differences exact arithmetic. The 90-minute cutoff this
+// feeds is still evaluated against SQLite's real `now`, but that margin is
+// minutes wide and this base is at most seconds old.
+const BASE_NOW = Date.now()
+const minutesAgo = (n) => new Date(BASE_NOW - n * 60_000).toISOString().replace(/\.\d{3}Z$/, 'Z')
 
 beforeEach(async () => {
   await env.DB.exec('DELETE FROM order_item_customizations')
