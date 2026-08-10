@@ -59,6 +59,17 @@ describe('createOrder', () => {
 
     const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM orders').first()
     expect(count.n).toBe(1)
+
+    // A retry that only checks orders.count would miss a batch simulator that
+    // fails to fully abort: the retry's child inserts could still land against
+    // the first call's already-committed order, silently doubling the drinks.
+    const items = await env.DB.prepare('SELECT * FROM order_items WHERE order_id = ?').bind(first.orderId).all()
+    expect(items.results).toHaveLength(1)
+
+    const customizations = await env.DB.prepare(
+      'SELECT COUNT(*) AS n FROM order_item_customizations WHERE order_item_id = ?'
+    ).bind(items.results[0].id).first()
+    expect(customizations.n).toBe(1)
   })
 
   it('rejects an empty item list', async () => {

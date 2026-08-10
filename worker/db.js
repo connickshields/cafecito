@@ -291,7 +291,20 @@ export async function createOrder(db, { customerId, customerName, submissionId, 
   } catch (error) {
     // A repeated submission_id means the client retried a request that already
     // succeeded. Return the original order instead of creating a duplicate.
-    if (!/UNIQUE constraint failed: orders\.submission_id/i.test(String(error))) throw error
+    //
+    // This is inherently coupled to D1's error text — there is no structured
+    // error code to branch on instead. Matching one exact sentence (e.g.
+    // "UNIQUE constraint failed: orders.submission_id") is brittle: if
+    // Cloudflare rewords the message, every retried submit would hard-fail
+    // instead of returning the existing order, a silent availability
+    // regression on exactly the flaky-network path this exists to handle.
+    // Requiring both a constraint/uniqueness keyword AND "submission_id"
+    // survives minor rewording while still refusing to swallow unrelated
+    // constraint violations (e.g. a NOT NULL failure elsewhere in the batch).
+    const message = String(error).toLowerCase()
+    const looksLikeUniqueViolation = /unique|constraint/.test(message)
+    const mentionsSubmissionId = message.includes('submission_id')
+    if (!looksLikeUniqueViolation || !mentionsSubmissionId) throw error
     const existing = await db
       .prepare('SELECT id FROM orders WHERE submission_id = ?')
       .bind(submissionId)
