@@ -90,8 +90,10 @@ Most pull requests get their own preview deployment at:
 
     https://pr-<number>-cafecito-preview.<subdomain>.workers.dev
 
-`<subdomain>` is the account's workers.dev host exactly as wrangler reports it
-(for this account, `connickshields`). CI never composes this URL — it reads the
+`<subdomain>` is the label *before* `.workers.dev` (here, `connickshields`).
+Wrangler itself reports the full host — `connickshields.workers.dev` — so
+pasting what it prints into the template above yields a doubled
+`.workers.dev.workers.dev` and a dead link. CI never composes this URL — it reads the
 `Version Preview Alias URL:` line out of `wrangler versions upload` and posts
 that, so a link in a PR comment is one wrangler actually minted.
 
