@@ -5,6 +5,14 @@ compatibility_date = "2026-08-01"
 # gate in front of it -- a second, unprotected origin burning the same quota.
 workers_dev = false
 
+# The production hostname. Kept here rather than clicked into the dashboard so
+# the routing is part of the deploy, like everything else. A hostname can only
+# be attached to one service, so this deploy fails until cafecito.connick.me is
+# released from the Pages project.
+routes = [
+  { pattern = "cafecito.connick.me", custom_domain = true }
+]
+
 [assets]
 directory = "./dist"
 binding = "ASSETS"
