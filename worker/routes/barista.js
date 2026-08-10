@@ -1,5 +1,7 @@
 import { fetchAccessJwks, verifyAccessJwt } from '../auth.js'
 import { getOrders, updateAvailability, updateOrderStatus } from '../db.js'
+import { readJsonBody } from './body.js'
+import { handleMenuAdmin } from './menu.js'
 
 const VALID_STATUSES = new Set(['pending', 'in_progress', 'completed', 'cancelled'])
 
@@ -7,14 +9,6 @@ const AVAILABILITY_ROUTES = {
   items: 'items',
   milk: 'milk_options',
   customizations: 'customization_options',
-}
-
-// A parse failure (invalid JSON) and a valid parse of a non-object (null, a
-// bare number, a bare string, ...) must both be treated as "no usable body"
-// so the field checks below (body.status, body.available) can never throw.
-async function readJsonBody(request) {
-  const body = await request.json().catch(() => null)
-  return typeof body === 'object' && body !== null ? body : {}
 }
 
 // The security boundary. Every /api/barista/* request passes through here
@@ -34,6 +28,12 @@ export async function requireBarista(request, env) {
 export async function handleBarista(request, env, url) {
   const path = url.pathname
   const method = request.method
+
+  // Everything under /api/barista/menu is menu management. It stays inside
+  // this handler so it inherits the mount-point Access gate in index.js.
+  if (path === '/api/barista/menu' || path.startsWith('/api/barista/menu/')) {
+    return handleMenuAdmin(request, env, url)
+  }
 
   if (path === '/api/barista/orders' && method === 'GET') {
     return { status: 200, body: await getOrders(env.DB) }
