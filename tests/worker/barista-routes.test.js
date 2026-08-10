@@ -34,9 +34,6 @@ describe('barista routes without Access', () => {
     const routes = [
       ['GET', '/api/barista/orders'],
       ['PATCH', '/api/barista/orders/1'],
-      ['PATCH', '/api/barista/items/1'],
-      ['PATCH', '/api/barista/milk/1'],
-      ['PATCH', '/api/barista/customizations/1'],
       ['GET', '/api/barista/menu'],
       ['POST', '/api/barista/menu/items'],
       ['PATCH', '/api/barista/menu/items/1'],
@@ -90,18 +87,8 @@ describe('barista PATCH body validation', () => {
     expect(result.status).toBe(400)
   })
 
-  it('returns 400, not 500, for a null availability body', async () => {
-    const result = await patch('/api/barista/items/1', 'null')
-    expect(result.status).toBe(400)
-  })
-
   it('returns 400, not 500, for an order-status body that parses to a bare number', async () => {
     const result = await patch('/api/barista/orders/1', '5')
-    expect(result.status).toBe(400)
-  })
-
-  it('returns 400, not 500, for an availability body that parses to a bare string', async () => {
-    const result = await patch('/api/barista/milk/1', '"oops"')
     expect(result.status).toBe(400)
   })
 })

@@ -1,15 +1,9 @@
 import { fetchAccessJwks, verifyAccessJwt } from '../auth.js'
-import { getOrders, updateAvailability, updateOrderStatus } from '../db.js'
+import { getOrders, updateOrderStatus } from '../db.js'
 import { readJsonBody } from './body.js'
 import { handleMenuAdmin } from './menu.js'
 
 const VALID_STATUSES = new Set(['pending', 'in_progress', 'completed', 'cancelled'])
-
-const AVAILABILITY_ROUTES = {
-  items: 'items',
-  milk: 'milk_options',
-  customizations: 'customization_options',
-}
 
 // The security boundary. Every /api/barista/* request passes through here
 // before any handler runs, so a new route cannot ship unprotected.
@@ -46,17 +40,6 @@ export async function handleBarista(request, env, url) {
       return { status: 400, body: { error: 'Invalid status' } }
     }
     const updated = await updateOrderStatus(env.DB, Number(statusMatch[1]), body.status)
-    return updated ? { status: 200, body: { ok: true } } : { status: 404, body: { error: 'Not found' } }
-  }
-
-  const availabilityMatch = path.match(/^\/api\/barista\/(items|milk|customizations)\/(\d+)$/)
-  if (availabilityMatch && method === 'PATCH') {
-    const body = await readJsonBody(request)
-    if (typeof body.available !== 'boolean') {
-      return { status: 400, body: { error: 'available must be a boolean' } }
-    }
-    const table = AVAILABILITY_ROUTES[availabilityMatch[1]]
-    const updated = await updateAvailability(env.DB, table, Number(availabilityMatch[2]), body.available)
     return updated ? { status: 200, body: { ok: true } } : { status: 404, body: { error: 'Not found' } }
   }
 

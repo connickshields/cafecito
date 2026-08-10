@@ -119,18 +119,6 @@ export async function updateOrderStatus(db, orderId, status) {
   return result.meta.changes > 0
 }
 
-const AVAILABILITY_TABLES = new Set(['items', 'milk_options', 'customization_options'])
-
-export async function updateAvailability(db, table, id, available) {
-  // Table names cannot be bound as parameters, so allowlist them.
-  if (!AVAILABILITY_TABLES.has(table)) throw new Error(`Unknown table: ${table}`)
-  const result = await db
-    .prepare(`UPDATE ${table} SET available = ? WHERE id = ?`)
-    .bind(available ? 1 : 0, id)
-    .run()
-  return result.meta.changes > 0
-}
-
 // Port of the get_queue_stats plpgsql function.
 // Drain rate: over the last 5 completions within 90 minutes, drinks completed
 // after the earliest completion divided by the minutes between first and last.

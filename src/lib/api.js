@@ -125,27 +125,6 @@ export async function reorderMenuEntries(kind, ids) {
   })
 }
 
-export async function updateItemAvailability(itemId, available) {
-  return request(`/api/barista/items/${itemId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ available }),
-  })
-}
-
-export async function updateMilkAvailability(milkId, available) {
-  return request(`/api/barista/milk/${milkId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ available }),
-  })
-}
-
-export async function updateCustomizationAvailability(customizationId, available) {
-  return request(`/api/barista/customizations/${customizationId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ available }),
-  })
-}
-
 // Cloudflare Access owns the session; logging out is a redirect it handles.
 export function signOut() {
   window.location.href = '/cdn-cgi/access/logout'
