@@ -49,7 +49,7 @@
 | `src/lib/api.js` | Add four client functions; later drop three |
 | `src/lib/BaristaView.svelte` | Delete the slide-over; open the new page |
 | `src/lib/Menu.svelte` | Filtered + grouped pickers |
-| `src/types.d.ts` | `MenuItem` gains four fields |
+| `src/types.d.ts` | `MenuItem` gains `milkOptionIds` and `customizationOptionIds` |
 | `tests/worker/menu-db.test.js` | Follows the module; gains CRUD tests |
 | `tests/worker/migration.test.js` | Gains a `0002` describe block |
 | `tests/worker/barista-routes.test.js` | Loses availability-route cases |
