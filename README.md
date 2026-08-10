@@ -84,6 +84,77 @@ Cloudflare — it never touches CI. Without the two repo secrets above, the
 deploy --dry-run` check does not need them, which is why it also runs safely
 on pull requests from forks).
 
+### PR previews
+
+Most pull requests get their own preview deployment at:
+
+    https://pr-<number>-cafecito-preview.<subdomain>.workers.dev
+
+`<subdomain>` is the label *before* `.workers.dev` (here, `connickshields`).
+Wrangler itself reports the full host — `connickshields.workers.dev` — so
+pasting what it prints into the template above yields a doubled
+`.workers.dev.workers.dev` and a dead link. CI never composes this URL — it reads the
+`Version Preview Alias URL:` line out of `wrangler versions upload` and posts
+that, so a link in a PR comment is one wrangler actually minted.
+
+Previews are skipped for pull requests from forks and for Dependabot pull
+requests: GitHub withholds repository secrets from both, so wrangler cannot
+authenticate. Dependabot branches live in this repository rather than a fork,
+so `deploy.yml` excludes it by actor as well as by repository name. Skipped
+PRs still run `verify`.
+
+Previews are a separate Worker (`cafecito-preview`) bound to a separate
+database (`cafecito-preview`), so nothing a preview does can touch production
+data.
+
+One-time setup:
+
+1. `wrangler d1 create cafecito-preview`, and put the id in the
+   `[[env.preview.d1_databases]]` block of `wrangler.toml`.
+2. `openssl rand -base64 32 | wrangler secret put COOKIE_SECRET --env preview`
+   — secrets do not cross Workers, so the preview Worker needs its own. Without
+   it every `/api/*` request returns 500, because the Worker fails closed on a
+   missing secret.
+3. Enable preview URLs on the `cafecito-preview` Worker. This needs both
+   halves: `preview_urls = true` in the `[env.preview]` block of
+   `wrangler.toml` (already committed), **and** one run of
+
+       wrangler triggers deploy --env preview
+
+   to push that setting to the account. `wrangler versions upload` — the only
+   wrangler command CI runs against preview — cannot do it, because it only
+   *reads* the subdomain settings; and omitting the flag does not default it
+   on, it leaves whatever the account already has. Until this is done, every
+   preview upload prints no `Version Preview Alias URL:` line and the
+   `preview` job fails with that message.
+
+**`routes = []` in `[env.preview]` is load-bearing.** Named environments
+inherit the top-level `routes`, so without it a preview deploy reassigns
+`cafecito.connick.me` away from production. Wrangler only warns about this, so
+nothing fails the build — it just takes the site down.
+
+**What previews cover:** the customer ordering flow — menu, cart, order
+submission, status, and the queue estimate.
+
+**What they do not cover:** barista data (`/api/barista/*` returns 403 because
+no Access application covers the preview hostname — the dashboard renders and
+shows its error banner), anything Access-specific such as the login redirect,
+and custom-domain behavior.
+
+**Resetting the preview database.** All PRs share one preview database, so it
+accumulates test orders, and migrations from abandoned PRs stay applied
+forever — wrangler tracks applied migrations by filename, so an abandoned
+`0002_foo.sql` never goes away and a later real `0002_bar.sql` applies
+alongside it. The preview schema can end up a superset of production's. When
+that becomes confusing, throw it away:
+
+    wrangler d1 delete cafecito-preview
+    wrangler d1 create cafecito-preview
+
+Then update the id in `[[env.preview.d1_databases]]` and commit. Test orders
+alone are not a reason to reset — the queue banner and wait estimate need
+orders before they show anything interesting.
+
 ### Development
 
 - `npm run dev` — Vite dev server for the SPA
