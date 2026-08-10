@@ -1572,6 +1572,19 @@ describe('createOrder', () => {
 
     const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM orders').first()
     expect(count.n).toBe(1)
+
+    // The orders count alone cannot detect this task's worst failure: if a
+    // retry's CHILD inserts landed against the first order, the customer's
+    // drinks would double while orders stayed at 1. Scope these by id — a
+    // global COUNT(*) would pass vacuously under the beforeEach cleanup.
+    const items = await env.DB.prepare('SELECT * FROM order_items WHERE order_id = ?')
+      .bind(first.orderId).all()
+    expect(items.results).toHaveLength(1)
+
+    const customizations = await env.DB.prepare(
+      'SELECT COUNT(*) AS n FROM order_item_customizations WHERE order_item_id = ?'
+    ).bind(items.results[0].id).first()
+    expect(customizations.n).toBe(1)
   })
 
   it('rejects an empty item list', async () => {
@@ -1711,7 +1724,15 @@ export async function createOrder(db, { customerId, customerName, submissionId, 
   } catch (error) {
     // A repeated submission_id means the client retried a request that already
     // succeeded. Return the original order instead of creating a duplicate.
-    if (!/UNIQUE constraint failed: orders\.submission_id/i.test(String(error))) throw error
+    // Matched on two independent signals rather than one exact sentence: D1's
+    // error wording is not a stable contract, and if it changed, an exact-match
+    // check would silently turn every retried submit into a hard failure. Both
+    // conditions are required, so an unrelated constraint violation still
+    // rethrows — no other column in the schema is named submission_id.
+    const message = String(error).toLowerCase()
+    const looksLikeUniqueViolation = /unique|constraint/.test(message)
+    const mentionsSubmissionId = message.includes('submission_id')
+    if (!looksLikeUniqueViolation || !mentionsSubmissionId) throw error
     const existing = await db
       .prepare('SELECT id FROM orders WHERE submission_id = ?')
       .bind(submissionId)
