@@ -1,0 +1,62 @@
+name: CI / Deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  # Never let two deploys race the same migration. Push (merge-to-main) runs
+  # share a single "deploy" lane so they queue in order; PR runs get their
+  # own per-ref lane so a later PR can never evict an already-queued deploy.
+  group: ${{ github.event_name == 'push' && 'deploy' || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Build BEFORE testing. The worker test pool reads wrangler.toml, which
+      # declares [assets] directory = "./dist". On a clean checkout that
+      # directory does not exist yet, so the pool fails to boot with "The
+      # assets directory specified does not exist" and collects zero tests.
+      # This passes locally only because dist/ survives from a previous build.
+      - run: npm run build
+      - run: npm test
+      - name: Validate wrangler config
+        # --no-install pins this to the wrangler version installed by `npm ci`
+        # from package.json/devDependencies (currently 4.72.0), never a
+        # floating `npx` fetch of latest. CI must run the same wrangler the
+        # tests were verified against.
+        run: npx --no-install wrangler deploy --dry-run
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Migrations run before code. Every migration must therefore be
+      # backward-compatible with the currently deployed Worker.
+      - name: Apply D1 migrations
+        run: npx --no-install wrangler d1 migrations apply cafecito --remote
+      - name: Deploy Worker
+        run: npx --no-install wrangler deploy

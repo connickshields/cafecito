@@ -2,7 +2,7 @@
   import { onMount, onDestroy, createEventDispatcher } from "svelte";
   import type { MenuItem } from "../types";
   import Icons from "./Icons.svelte";
-  import { getCustomizationOptions, getMilkOptions } from "./supabase";
+  import { getCustomizationOptions, getMilkOptions } from "./api";
   import { fade } from "svelte/transition";
 
   const dispatch = createEventDispatcher();

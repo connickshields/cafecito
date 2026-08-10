@@ -1,0 +1,21 @@
+name = "cafecito"
+main = "worker/index.js"
+compatibility_date = "2026-08-01"
+# Without this, workers.dev also serves the same Worker/D1 with no Access
+# gate in front of it -- a second, unprotected origin burning the same quota.
+workers_dev = false
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cafecito"
+database_id = "473bbbb3-e4b5-4d02-ae58-4851cf35b4a7"
+migrations_dir = "migrations"
+
+[vars]
+ACCESS_TEAM_DOMAIN = "blue-band-0b37.cloudflareaccess.com"
+ACCESS_AUD = "7ba1daa2e0e4b0bd9024e83df23c27d45d40d3e92daffeee2a56bbdf0851bd22"

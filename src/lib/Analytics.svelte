@@ -4,7 +4,7 @@
   import Icons from "./Icons.svelte";
   import RankedBars from "./RankedBars.svelte";
   import { computeAnalytics, formatDuration } from "./analytics";
-  import { getOrders } from "./supabase";
+  import { getOrders } from "./api";
 
   export let onClose;
 

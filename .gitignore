@@ -24,6 +24,8 @@ dist-ssr
 *.sw?
 
 .env
+.dev.vars
+.dev.vars.*
 supabase/
 .claude/worktrees/
 .superpowers/

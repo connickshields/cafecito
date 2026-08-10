@@ -1,5 +1,5 @@
 // Pure aggregation for the barista analytics view. Input is the array returned
-// by getOrders() in supabase.js. No DOM, no Svelte — this module is unit-tested.
+// by getOrders() in worker/db.js. No DOM, no Svelte — this module is unit-tested.
 
 const MINUTE_MS = 60_000
 

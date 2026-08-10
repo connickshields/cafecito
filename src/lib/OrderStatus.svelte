@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { fade } from "svelte/transition";
-  import { cancelOrder, getOrderDetails, getQueueStats } from "./supabase";
+  import { cancelOrder, getOrderDetails, getQueueStats } from "./api";
   import type { OrderDetails } from "../types";
   import Icons from "./Icons.svelte";
   import { waitRange } from "./waitEstimate";
