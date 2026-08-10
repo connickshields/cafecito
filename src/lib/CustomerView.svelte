@@ -7,7 +7,7 @@
   import OrderStatus from "./OrderStatus.svelte";
   import HangoverNotice from "./HangoverNotice.svelte";
   import ClosedNotice from "./ClosedNotice.svelte";
-  import { userSession, getMenuItems, submitOrder, getQueueStats } from "./supabase";
+  import { userSession, getMenuItems, submitOrder, getQueueStats } from "./api";
   import { waitRange } from "./waitEstimate";
   import type { MenuItem, OrderItem } from "../types";
 

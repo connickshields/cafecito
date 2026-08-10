@@ -11,7 +11,7 @@
     updateMilkAvailability,
     updateItemAvailability,
     updateCustomizationAvailability,
-  } from "./supabase";
+  } from "./api";
   import type { Order } from "../types";
   import Icons from "./Icons.svelte";
   import Analytics from "./Analytics.svelte";

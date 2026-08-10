@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import { signIn } from "./supabase";
+  import { signIn } from "./api";
   import Icons from "./Icons.svelte";
 
   const dispatch = createEventDispatcher();

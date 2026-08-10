@@ -10,7 +10,7 @@
     signInAnonymously,
     supabase,
     getActiveOrder,
-  } from "./lib/supabase";
+  } from "./lib/api";
 
   let customerName = "";
   let submittedCustomerName = "";
