@@ -96,6 +96,35 @@ export async function updateOrderStatus(orderId, newStatus) {
   })
 }
 
+// Menu management. These deliberately bypass the fetchMenu() de-duplication
+// above: that cache exists to collapse the customer view's three polls into one
+// request, and the manager needs archived rows and sort order, which the
+// customer payload does not carry.
+export async function getMenuForManagement() {
+  return request('/api/barista/menu')
+}
+
+export async function createMenuEntry(kind, fields) {
+  return request(`/api/barista/menu/${kind}`, {
+    method: 'POST',
+    body: JSON.stringify(fields),
+  })
+}
+
+export async function updateMenuEntry(kind, id, fields) {
+  return request(`/api/barista/menu/${kind}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(fields),
+  })
+}
+
+export async function reorderMenuEntries(kind, ids) {
+  return request(`/api/barista/menu/${kind}/order`, {
+    method: 'PATCH',
+    body: JSON.stringify({ ids }),
+  })
+}
+
 export async function updateItemAvailability(itemId, available) {
   return request(`/api/barista/items/${itemId}`, {
     method: 'PATCH',
