@@ -2434,12 +2434,39 @@ describe('identity is never taken from the request body', () => {
     expect((await alice(`/api/orders/${orderId}`)).status).toBe(404)
   })
 
+  // The forged cookie must reuse a REAL customer's id with a bad signature,
+  // and that customer must have a live pending order. Otherwise the null-body
+  // assertion is inert: beforeEach empties the orders table, so a server that
+  // honoured the forged value would find nothing either, and the test would
+  // pass whether or not the signature was ever checked.
   it('rejects a tampered cookie rather than trusting it', async () => {
-    const response = await SELF.fetch(`${ORIGIN}/api/orders/active`, {
-      headers: { Cookie: 'cafecito_cid=forged-id.badsignature' },
+    const alice = makeClient()
+    await alice('/api/menu')
+    const menu = await (await alice('/api/menu')).json()
+    await alice('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerName: 'Ada',
+        submissionId: crypto.randomUUID(),
+        items: [{ item_id: menu.items[0].id, milk_option_id: null, quantity: 1, customization_option_ids: [] }],
+      }),
     })
-    // A bad cookie is replaced with a fresh identity, not honoured.
-    expect(response.headers.get('Set-Cookie')).toContain('cafecito_cid=')
+
+    const aliceId = await alice.customerId()
+
+    const response = await SELF.fetch(`${ORIGIN}/api/orders/active`, {
+      headers: { Cookie: `cafecito_cid=${aliceId}.badsignature` },
+    })
+
+    const newId = (response.headers.get('Set-Cookie') ?? '')
+      .slice('cafecito_cid='.length)
+      .split('.')[0]
+
+    // Fails if the server reused the forged id as the new identity...
+    expect(newId).not.toBe(aliceId)
+    // ...and fails if it serviced THIS request with the forged id, since that
+    // would surface Alice's pending order.
     expect(await response.json()).toBeNull()
   })
 })
