@@ -168,7 +168,7 @@ const QUEUE_STATS_SQL = `
       FROM orders o
       JOIN order_items oi ON oi.order_id = o.id
      WHERE o.status IN ('pending','in_progress')
-       AND (?1 IS NULL OR o.created_at < (SELECT created_at FROM orders WHERE id = ?1))
+       AND (? IS NULL OR o.created_at < (SELECT created_at FROM orders WHERE id = ?))
   ),
   recent AS (
     SELECT o.id,
@@ -202,7 +202,7 @@ const QUEUE_STATS_SQL = `
 `
 
 export async function getQueueStats(db, orderId) {
-  const row = await db.prepare(QUEUE_STATS_SQL).bind(orderId ?? null).first()
+  const row = await db.prepare(QUEUE_STATS_SQL).bind(orderId ?? null, orderId ?? null).first()
   return {
     drinksAhead: row?.drinks_ahead ?? 0,
     activeOrders: row?.active_orders ?? 0,
