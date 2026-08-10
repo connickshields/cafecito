@@ -39,3 +39,59 @@ describe('0001_init', () => {
     expect(Date.parse(row.updated_at)).toBeGreaterThanOrEqual(Date.parse(row.created_at))
   })
 })
+
+describe('0002_menu_management', () => {
+  it('backfills sort_order to the previous alphabetical order', async () => {
+    const { results } = await env.DB.prepare('SELECT name FROM items ORDER BY sort_order').all()
+    expect(results.map((r) => r.name)).toEqual([
+      'Americano', 'Cappuccino', 'Cortado', 'Espresso', 'Flat White', 'Latte', 'Matcha Latte', 'Mocha',
+    ])
+  })
+
+  it('backfills milk links only for drinks that previously allowed milk', async () => {
+    const espresso = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM item_milk_options l
+         JOIN items i ON i.id = l.item_id WHERE i.name = 'Espresso'`
+    ).first()
+    const cappuccino = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM item_milk_options l
+         JOIN items i ON i.id = l.item_id WHERE i.name = 'Cappuccino'`
+    ).first()
+    const total = await env.DB.prepare('SELECT COUNT(*) AS n FROM item_milk_options').first()
+
+    expect(espresso.n).toBe(0)
+    expect(cappuccino.n).toBe(4)
+    // 5 drinks allowed milk x 4 milks
+    expect(total.n).toBe(20)
+  })
+
+  it('backfills customization links only for drinks that previously allowed them', async () => {
+    const matcha = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM item_customization_options l
+         JOIN items i ON i.id = l.item_id WHERE i.name = 'Matcha Latte'`
+    ).first()
+    const total = await env.DB.prepare('SELECT COUNT(*) AS n FROM item_customization_options').first()
+
+    // Matcha Latte took milk but not customizations -- the exact case the old
+    // all-or-nothing booleans could not express.
+    expect(matcha.n).toBe(0)
+    // 4 drinks allowed customizations x 6 options
+    expect(total.n).toBe(24)
+  })
+
+  it('rewrites customization types into display headings', async () => {
+    const { results } = await env.DB.prepare(
+      'SELECT DISTINCT type FROM customization_options ORDER BY type'
+    ).all()
+    expect(results.map((r) => r.type)).toEqual(['Coffee', 'Syrups', 'Toppings'])
+  })
+
+  it('defaults archived to 0 and rejects any other value', async () => {
+    const row = await env.DB.prepare('SELECT archived FROM items WHERE name = ?').bind('Latte').first()
+    expect(row.archived).toBe(0)
+
+    await expect(
+      env.DB.prepare('UPDATE items SET archived = 2 WHERE name = ?').bind('Latte').run()
+    ).rejects.toThrow()
+  })
+})
