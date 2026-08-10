@@ -6,7 +6,7 @@
   export let milkOptions = [];
   export let customizationOptions = [];
   export let onSave;
-  export let onArchive;
+  export let onArchive = null;
   export let onCancel;
 
   let name = row?.name ?? "";

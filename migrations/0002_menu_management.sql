@@ -54,10 +54,11 @@ SELECT i.id, c.id FROM items i CROSS JOIN customization_options c
  WHERE i.allows_customizations = 1;
 
 -- customization_options.type was written by the seed and read by nothing. It
--- now groups the customization picker, and stores the LITERAL heading to
--- display -- no title-casing, no pluralization, no mapping table. Naive
--- pluralization would render 'coffee' as "Coffees"; a hard-coded enum would
--- break the first time a new type is invented.
+-- now groups the customization picker. This migration does a one-time cleanup
+-- of legacy lowercase slugs. Naive pluralization would render 'coffee' as
+-- "Coffees"; a hard-coded enum would break the first time a new type is
+-- invented. Neither problem exists if the barista simply types the heading
+-- they want.
 UPDATE customization_options SET type = 'Syrups'   WHERE LOWER(type) IN ('syrup','syrups');
 UPDATE customization_options SET type = 'Toppings' WHERE LOWER(type) IN ('topping','toppings');
 UPDATE customization_options SET type = 'Coffee'   WHERE LOWER(type) IN ('coffee','coffees');

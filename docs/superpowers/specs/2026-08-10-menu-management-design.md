@@ -108,21 +108,29 @@ can now offer milk without also offering Extra Shot.
 ### 1.4 Customization types become display labels
 
 ```sql
-UPDATE customization_options SET type = 'Syrups'   WHERE type = 'syrup';
-UPDATE customization_options SET type = 'Toppings' WHERE type = 'topping';
-UPDATE customization_options SET type = 'Coffee'   WHERE type = 'coffee';
+UPDATE customization_options SET type = 'Syrups'   WHERE LOWER(type) IN ('syrup','syrups');
+UPDATE customization_options SET type = 'Toppings' WHERE LOWER(type) IN ('topping','toppings');
+UPDATE customization_options SET type = 'Coffee'   WHERE LOWER(type) IN ('coffee','coffees');
+
+-- Anything this migration does not recognise still becomes a customer-facing
+-- heading verbatim, so capitalise it rather than shipping a lowercase slug to
+-- the menu. One-time cleanup only: from here on the barista types the heading
+-- they want and it is stored exactly as typed.
+UPDATE customization_options
+   SET type = UPPER(SUBSTR(type, 1, 1)) || SUBSTR(type, 2)
+ WHERE type <> UPPER(SUBSTR(type, 1, 1)) || SUBSTR(type, 2);
 ```
 
 `customization_options.type` is currently written by the seed and read by
 nothing — not the customer picker, not analytics, not the barista view. This
 design makes it real by grouping the customization picker under type headers.
 
-Storing the type as the **exact string to display** removes every
-transformation rule. There is no title-casing, no pluralization, no mapping
-table: the header above a group is the type as typed. Naive pluralization would
-render `coffee` as "Coffees"; a hard-coded enum would break the first time a
-new type is invented. Neither problem exists if the barista simply types the
-heading they want.
+This migration does a one-time cleanup of legacy lowercase slugs, capitalising
+unrecognised types to customer-facing form. From then on, the type is stored
+exactly as the barista types it, with no runtime transformation. Naive
+pluralization would render `coffee` as "Coffees"; a hard-coded enum would break
+the first time a new type is invented. Neither problem exists if the barista
+simply types the heading they want.
 
 ### 1.5 The superseded boolean columns
 
