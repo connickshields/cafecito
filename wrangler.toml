@@ -27,3 +27,33 @@ migrations_dir = "migrations"
 [vars]
 ACCESS_TEAM_DOMAIN = "blue-band-0b37.cloudflareaccess.com"
 ACCESS_AUD = "7ba1daa2e0e4b0bd9024e83df23c27d45d40d3e92daffeee2a56bbdf0851bd22"
+
+# Previews run as a separate Worker with its own bindings. Wrangler does not
+# inherit `d1_databases` into an environment, so cafecito-preview physically
+# cannot reach the production database -- the binding does not exist here.
+[env.preview]
+name = "cafecito-preview"
+
+# REQUIRED. Named environments DO inherit top-level `routes`. Without this,
+# wrangler warns that deploying preview "will reassign these custom domains
+# away from the top-level Worker" -- i.e. it would take cafecito.connick.me
+# off production. A warning does not fail CI, so this line is the guardrail.
+routes = []
+
+# Production stays off workers.dev; previews need it for their URLs.
+workers_dev = true
+
+[env.preview.assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "cafecito-preview"
+database_id = "a3d45d9a-3ead-4842-92d4-43e2ba92de95"
+migrations_dir = "migrations"
+
+[env.preview.vars]
+ACCESS_TEAM_DOMAIN = "blue-band-0b37.cloudflareaccess.com"
+ACCESS_AUD = "7ba1daa2e0e4b0bd9024e83df23c27d45d40d3e92daffeee2a56bbdf0851bd22"

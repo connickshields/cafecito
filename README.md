@@ -84,6 +84,34 @@ Cloudflare — it never touches CI. Without the two repo secrets above, the
 deploy --dry-run` check does not need them, which is why it also runs safely
 on pull requests from forks).
 
+### PR previews
+
+Every pull request from a branch in this repository gets its own preview
+deployment at:
+
+    https://pr-<number>-cafecito-preview.<subdomain>.workers.dev
+
+Previews are a separate Worker (`cafecito-preview`) bound to a separate
+database (`cafecito-preview`), so nothing a preview does can touch production
+data.
+
+One-time setup:
+
+1. `wrangler d1 create cafecito-preview`, and put the id in the
+   `[[env.preview.d1_databases]]` block of `wrangler.toml`.
+2. `openssl rand -base64 32 | wrangler secret put COOKIE_SECRET --env preview`
+   — secrets do not cross Workers, so the preview Worker needs its own. Without
+   it every `/api/*` request returns 500, because the Worker fails closed on a
+   missing secret.
+3. Set a repository **variable** `WORKERS_SUBDOMAIN` to the account's
+   workers.dev subdomain (Settings → Secrets and variables → Actions →
+   Variables). The workflow composes the preview URL from it.
+
+**`routes = []` in `[env.preview]` is load-bearing.** Named environments
+inherit the top-level `routes`, so without it a preview deploy reassigns
+`cafecito.connick.me` away from production. Wrangler only warns about this, so
+nothing fails the build — it just takes the site down.
+
 ### Development
 
 - `npm run dev` — Vite dev server for the SPA
