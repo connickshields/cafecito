@@ -43,6 +43,16 @@ routes = []
 # Production stays off workers.dev; previews need it for their URLs.
 workers_dev = true
 
+# REQUIRED, and not implied by `workers_dev = true`. Wrangler reads this key
+# into `previews_enabled` on the subdomain API call; when the key is absent it
+# passes `undefined`, `JSON.stringify` drops it from the request body, and the
+# server leaves the Worker's existing setting untouched. So omitting this does
+# not mean "default on" -- it means "never changes", and per-version preview
+# alias URLs (`pr-<n>-cafecito-preview....workers.dev`) stay off forever.
+# Note this key only takes effect on a command that WRITES subdomain settings
+# (`wrangler deploy` / `triggers deploy`); `versions upload` only reads them.
+preview_urls = true
+
 [env.preview.assets]
 directory = "./dist"
 binding = "ASSETS"

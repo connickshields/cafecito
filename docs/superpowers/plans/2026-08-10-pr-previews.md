@@ -224,6 +224,15 @@ git commit -m "feat: add preview wrangler environment"
 
 Append to `.github/workflows/deploy.yml`, after the `deploy` job. Do not modify the existing `verify` or `deploy` jobs, and do not touch the workflow-level `concurrency` block.
 
+**Corrected during implementation: the `if` block below is wrong, and its
+comment is wrong with it.** The two conditions skip fork pull requests only.
+Dependabot opens its pull requests from a branch **in this repository**, so
+`head.repo.full_name == github.repository` is true for them and they were not
+skipped — every Dependabot PR would have failed on missing secrets, the exact
+permanently-red check the comment says it is avoiding. The shipped workflow
+carries a third condition, `github.actor != 'dependabot[bot]'`, and a comment
+that spells out why the repo-name check alone is not enough.
+
 ```yaml
   preview:
     needs: verify

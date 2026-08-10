@@ -127,6 +127,19 @@ fails its tests never gets a URL.
       pull-requests: write
 ```
 
+**Corrected during implementation — the `if` above is wrong as written.** The
+two conditions shown skip fork pull requests only. Dependabot opens its pull
+requests from a branch *in this repository*, not a fork, so
+`head.repo.full_name == github.repository` is true for them and they were not
+skipped at all. The shipped workflow adds a third, actor-based condition:
+
+```yaml
+      github.actor != 'dependabot[bot]'
+```
+
+The claim below that the two conditions skip both is preserved as written, and
+was false; read it as describing the intent that the third condition delivers.
+
 The `if` condition skips fork and Dependabot pull requests. GitHub withholds
 repository secrets from both, so `wrangler` cannot authenticate and the job
 would fail every time. A permanently red check on every Dependabot PR teaches
@@ -161,6 +174,29 @@ Whether preview URLs require an explicit `preview_urls = true` alongside
 `workers_dev = true` on the preview environment. This cannot be settled from
 the CLI without deploying; the first preview deploy answers it. If aliased URLs
 do not resolve, add the flag.
+
+**Answered during implementation: yes, the flag is required, and
+`workers_dev = true` alone can never substitute for it.** Read from wrangler
+4.72.0's source: `getSubdomainValues()` sets `defaultPreviewUrls = undefined`
+when `preview_urls` is absent from config, so the subdomain POST body carries
+`previews_enabled: undefined`, `JSON.stringify` drops the key entirely, and the
+server keeps whatever the Worker already had. Omitting the flag is therefore
+"leave unchanged", not "default on". Confirmed empirically: a real
+`versions upload` against `cafecito-preview` printed no
+`Version Preview Alias URL:` line.
+
+Two consequences the design did not anticipate. First, `versions upload` only
+*reads* the subdomain settings, so it can never flip them on however many times
+CI runs — enabling previews takes one `wrangler triggers deploy --env preview`
+against the account, a one-time manual step now recorded in the README.
+Second, since wrangler prints the alias URL only when previews are genuinely
+enabled, the workflow parses that line out of stdout and fails the job when it
+is missing, rather than composing the URL from a repository variable as
+"Per-PR URLs come from versions" proposed. That section's argument against
+scraping stdout still holds for *per-version* URLs, which are unstable; the
+alias line is stable and, unlike a composed string, cannot name a URL that does
+not exist. The `vars.WORKERS_SUBDOMAIN` repository variable it recommends is
+consequently unused.
 
 An alias also has to be valid as a hostname label. `pr-<number>` always is.
 

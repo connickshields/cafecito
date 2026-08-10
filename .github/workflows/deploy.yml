@@ -5,6 +5,15 @@ on:
   push:
     branches: [main]
 
+# Workflow-wide default: every job gets read-only access to the repository and
+# nothing else, regardless of what the repository's default GITHUB_TOKEN
+# permissions are set to. Jobs that need more must ask for it explicitly, which
+# is what makes the `preview` job's `pull-requests: write` genuinely scoped to
+# that job. `verify` and `deploy` need nothing beyond this: they only check out
+# the repo, install, build, test, and talk to Cloudflare with its own API token.
+permissions:
+  contents: read
+
 concurrency:
   # Never let two deploys race the same migration. Push (merge-to-main) runs
   # share a single "deploy" lane so they queue in order; PR runs get their
@@ -35,6 +44,20 @@ jobs:
         # floating `npx` fetch of latest. CI must run the same wrangler the
         # tests were verified against.
         run: npx --no-install wrangler deploy --env "" --dry-run
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # The preview job runs `npm ci`, a build, and a REMOTE database migration
+      # before it ever parses [env.preview]. Dry-running it here fails a broken
+      # preview config in seconds instead of after that work.
+      #
+      # Scope, honestly: --dry-run returns before making any API call, so this
+      # catches config parse errors, bad bindings, and bundle failures only. It
+      # does NOT validate routes -- it cannot tell you whether `routes = []` is
+      # present or whether preview would steal the production custom domain.
+      # That guardrail is enforced by reading wrangler.toml, not by this step.
+      - name: Validate preview wrangler config
+        run: npx --no-install wrangler deploy --env preview --dry-run
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -76,7 +99,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # Scoped to this job only, so the deploy job cannot write to PRs.
+      # Scoped to this job only. The workflow-level default above is
+      # `contents: read` with no pull-requests scope, and a job-level block
+      # replaces that default wholesale rather than adding to it -- so `verify`
+      # and `deploy` genuinely cannot write to pull requests.
       pull-requests: write
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -98,16 +124,30 @@ jobs:
       # deterministic and reassigns to the newest version on each push, so the
       # link stays valid for the life of the PR.
       - name: Upload preview version
-        run: npx --no-install wrangler versions upload --env preview --preview-alias pr-${{ github.event.pull_request.number }}
+        id: upload
+        # The URL is READ OUT OF WRANGLER'S OUTPUT, never composed here.
+        # Wrangler prints "Version Preview Alias URL:" only when preview URLs
+        # are actually enabled on the Worker, so parsing it makes the comment
+        # self-verifying: no line, no comment, red check. Composing the URL
+        # from a repo variable instead would post a dead link on a green run.
+        run: |
+          # tee would otherwise mask a non-zero exit from wrangler.
+          set -o pipefail
+          npx --no-install wrangler versions upload --env preview --preview-alias pr-${{ github.event.pull_request.number }} 2>&1 | tee upload.log
+          url=$(tr -d '\r' < upload.log | sed -n 's/.*Version Preview Alias URL:[[:space:]]*//p' | tail -n 1)
+          if [ -z "$url" ]; then
+            echo "::error::wrangler did not print a 'Version Preview Alias URL:' line. Preview URLs are not enabled on the cafecito-preview Worker. wrangler versions upload only READS the subdomain settings, so it cannot turn them on: the account needs one 'wrangler triggers deploy --env preview' with preview_urls = true in wrangler.toml. See README, 'PR previews' -> one-time setup."
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
       - name: Comment the preview URL
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
-          SUBDOMAIN: ${{ vars.WORKERS_SUBDOMAIN }}
+          URL: ${{ steps.upload.outputs.url }}
         run: |
-          : "${SUBDOMAIN:?WORKERS_SUBDOMAIN repository variable is not set}"
           marker="<!-- cafecito-preview-url -->"
-          url="https://pr-${PR}-cafecito-preview.${SUBDOMAIN}.workers.dev"
+          url="$URL"
           # The alias URL is stable across pushes, so comment once rather than
           # editing or stacking a new comment on every commit.
           if gh pr view "$PR" --json comments --jq '.comments[].body' | grep -qF "$marker"; then
