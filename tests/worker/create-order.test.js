@@ -84,6 +84,14 @@ describe('createOrder', () => {
     expect(count.n).toBe(0)
   })
 
+  it('rejects an archived item and writes nothing', async () => {
+    await env.DB.prepare('UPDATE items SET archived = 1 WHERE id = ?').bind(latte).run()
+    await expect(createOrder(env.DB, baseOrder())).rejects.toThrow(UnavailableError)
+
+    const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM orders').first()
+    expect(count.n).toBe(0)
+  })
+
   it('rejects an unavailable milk option', async () => {
     await env.DB.prepare('UPDATE milk_options SET available = 0 WHERE id = ?').bind(oat).run()
     await expect(createOrder(env.DB, baseOrder())).rejects.toThrow(UnavailableError)

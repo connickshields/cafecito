@@ -196,7 +196,7 @@ async function assertAvailable(db, table, ids) {
   if (ids.length === 0) return []
   const placeholders = ids.map(() => '?').join(',')
   const { results } = await db
-    .prepare(`SELECT id FROM ${table} WHERE id IN (${placeholders}) AND available = 1`)
+    .prepare(`SELECT id FROM ${table} WHERE id IN (${placeholders}) AND available = 1 AND archived = 0`)
     .bind(...ids)
     .all()
   const found = new Set(results.map((r) => r.id))
