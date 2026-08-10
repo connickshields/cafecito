@@ -255,6 +255,11 @@ export async function nameTaken(db, kind, name, excludeId = null) {
   return row !== null
 }
 
+export async function menuEntryName(db, kind, id) {
+  const row = await db.prepare(`SELECT name FROM ${tableFor(kind)} WHERE id = ?`).bind(id).first()
+  return row?.name ?? null
+}
+
 export async function optionIdsExist(db, kind, ids) {
   if (ids.length === 0) return true
   const placeholders = ids.map(() => '?').join(',')

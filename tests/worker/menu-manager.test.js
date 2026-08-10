@@ -182,6 +182,49 @@ describe('PATCH /api/barista/menu/:kind/:id', () => {
     expect((await getMenu(env.DB)).items.map((i) => i.name)).toContain('Latte')
   })
 
+  it('rejects restoring an archived row whose name a live row has since taken', async () => {
+    const mocha = await itemNamed('Mocha')
+    expect((await send('PATCH', `/api/barista/menu/items/${mocha.id}`, { archived: true })).status).toBe(200)
+    expect((await send('POST', '/api/barista/menu/items', { name: 'Mocha' })).status).toBe(201)
+
+    const result = await send('PATCH', `/api/barista/menu/items/${mocha.id}`, { archived: false })
+    expect(result.status).toBe(409)
+
+    const menu = await call('GET', '/api/barista/menu')
+    expect(menu.body.items.find((i) => i.id === mocha.id).archived).toBe(true)
+  })
+
+  it('restores an archived row whose name is still free', async () => {
+    const mocha = await itemNamed('Mocha')
+    await send('PATCH', `/api/barista/menu/items/${mocha.id}`, { archived: true })
+
+    const result = await send('PATCH', `/api/barista/menu/items/${mocha.id}`, { archived: false })
+    expect(result.status).toBe(200)
+
+    const customerMenu = await getMenu(env.DB)
+    expect(customerMenu.items.map((i) => i.name)).toContain('Mocha')
+  })
+
+  it('judges a rename-and-restore PATCH on the incoming name, not the stored one', async () => {
+    const mocha = await itemNamed('Mocha')
+    await send('PATCH', `/api/barista/menu/items/${mocha.id}`, { archived: true })
+    // A new row now holds the archived row's stored name.
+    await send('POST', '/api/barista/menu/items', { name: 'Mocha' })
+
+    // Restoring under a different, free name must succeed: the incoming name
+    // is what gets checked, not the stale stored name it would collide on.
+    const result = await send('PATCH', `/api/barista/menu/items/${mocha.id}`, {
+      archived: false,
+      name: 'Mocha Deluxe',
+    })
+    expect(result.status).toBe(200)
+
+    const menu = await call('GET', '/api/barista/menu')
+    const restored = menu.body.items.find((i) => i.id === mocha.id)
+    expect(restored.archived).toBe(false)
+    expect(restored.name).toBe('Mocha Deluxe')
+  })
+
   it('archiving a drink leaves order history readable', async () => {
     const latte = await itemNamed('Latte')
     await env.DB.prepare(

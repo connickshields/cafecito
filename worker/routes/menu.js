@@ -4,6 +4,7 @@ import {
   getMenu,
   getMenuForManagement,
   MENU_KINDS,
+  menuEntryName,
   nameTaken,
   optionIdsExist,
   reorderMenuEntries,
@@ -128,7 +129,13 @@ async function update(env, kind, id, body) {
   if (parsed.error) return fail(parsed.error)
   const { fields } = parsed
 
-  if (fields.columns.name !== undefined && (await nameTaken(env.DB, kind, fields.columns.name, id))) {
+  // A restore re-enters the unique-name space even though the request carries
+  // no name of its own, so fall back to the row's stored name. An incoming
+  // name wins, for a PATCH that renames and restores at once.
+  const restoring = fields.columns.archived === 0
+  const nameToCheck =
+    fields.columns.name ?? (restoring ? await menuEntryName(env.DB, kind, id) : null)
+  if (nameToCheck !== null && (await nameTaken(env.DB, kind, nameToCheck, id))) {
     return { status: 409, body: { error: 'That name is already in use' } }
   }
   const linkError = await checkLinks(env.DB, fields.links)
