@@ -209,3 +209,100 @@ export async function getQueueStats(db, orderId) {
     estMinsPerDrink: row?.est_mins_per_drink == null ? null : Number(row.est_mins_per_drink),
   }
 }
+
+export class UnavailableError extends Error {
+  constructor(unavailable) {
+    super('One or more selections are unavailable')
+    this.name = 'UnavailableError'
+    this.unavailable = unavailable
+  }
+}
+
+async function assertAvailable(db, table, ids) {
+  if (ids.length === 0) return []
+  const placeholders = ids.map(() => '?').join(',')
+  const { results } = await db
+    .prepare(`SELECT id FROM ${table} WHERE id IN (${placeholders}) AND available = 1`)
+    .bind(...ids)
+    .all()
+  const found = new Set(results.map((r) => r.id))
+  return ids.filter((id) => !found.has(id)).map((id) => ({ table, id }))
+}
+
+// Atomic because every statement goes in one batch(). The children address
+// their parent by submission_id rather than by an autoincrement id nobody
+// knows yet — D1 batches cannot feed one statement's result into the next.
+export async function createOrder(db, { customerId, customerName, submissionId, items }) {
+  if (!items || items.length === 0) throw new Error('Order must contain at least one item')
+
+  const itemIds = [...new Set(items.map((i) => i.item_id))]
+  const milkIds = [...new Set(items.map((i) => i.milk_option_id).filter((id) => id != null))]
+  const customizationIds = [
+    ...new Set(items.flatMap((i) => i.customization_option_ids ?? [])),
+  ]
+
+  const unavailable = [
+    ...(await assertAvailable(db, 'items', itemIds)),
+    ...(await assertAvailable(db, 'milk_options', milkIds)),
+    ...(await assertAvailable(db, 'customization_options', customizationIds)),
+  ]
+  if (unavailable.length > 0) throw new UnavailableError(unavailable)
+
+  const statements = [
+    db
+      .prepare(
+        `INSERT INTO orders (customer_id, customer_name, submission_id, status)
+         VALUES (?, ?, ?, 'pending')`
+      )
+      .bind(customerId, customerName, submissionId),
+  ]
+
+  for (const item of items) {
+    const orderItemId = crypto.randomUUID()
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO order_items (id, order_id, item_id, milk_option_id, quantity)
+           VALUES (?, (SELECT id FROM orders WHERE submission_id = ?), ?, ?, ?)`
+        )
+        .bind(
+          orderItemId,
+          submissionId,
+          item.item_id,
+          item.milk_option_id ?? null,
+          Math.max(1, Number(item.quantity) || 1)
+        )
+    )
+
+    for (const customizationId of item.customization_option_ids ?? []) {
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO order_item_customizations (order_item_id, customization_option_id)
+             VALUES (?, ?)`
+          )
+          .bind(orderItemId, customizationId)
+      )
+    }
+  }
+
+  try {
+    await db.batch(statements)
+  } catch (error) {
+    // A repeated submission_id means the client retried a request that already
+    // succeeded. Return the original order instead of creating a duplicate.
+    if (!/UNIQUE constraint failed: orders\.submission_id/i.test(String(error))) throw error
+    const existing = await db
+      .prepare('SELECT id FROM orders WHERE submission_id = ?')
+      .bind(submissionId)
+      .first()
+    if (existing) return { orderId: existing.id, duplicate: true }
+    throw error
+  }
+
+  const created = await db
+    .prepare('SELECT id FROM orders WHERE submission_id = ?')
+    .bind(submissionId)
+    .first()
+  return { orderId: created.id, duplicate: false }
+}
