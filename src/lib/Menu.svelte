@@ -4,6 +4,7 @@
   import Icons from "./Icons.svelte";
   import { getCustomizationOptions, getMilkOptions } from "./api";
   import { fade } from "svelte/transition";
+  import { groupByType } from "./menuGrouping";
 
   const dispatch = createEventDispatcher();
 
@@ -21,6 +22,19 @@
   let milkOptions = [];
   let customizationOptions = [];
   let showCustomizationModal = false;
+
+  // A drink now carries its own applicable options, so the pickers show that
+  // subset rather than everything on the menu.
+  $: visibleMilkOptions = selectedItem
+    ? milkOptions.filter((milk) => selectedItem.milkOptionIds.includes(milk.id))
+    : [];
+  $: visibleCustomizationGroups = selectedItem
+    ? groupByType(
+        customizationOptions.filter((option) =>
+          selectedItem.customizationOptionIds.includes(option.id)
+        )
+      )
+    : [];
 
   let justAddedItemId: number | null = null;
 
@@ -47,8 +61,10 @@
       const milk = milkOptions.find((m) => m.id === selectedMilkOptionId);
       if (!milk || !milk.available) selectedMilkOptionId = null;
     }
-    selectedCustomizationOptionIds = selectedCustomizationOptionIds.filter((id) =>
-      customizationOptions.some((c) => c.id === id)
+    selectedCustomizationOptionIds = selectedCustomizationOptionIds.filter(
+      (id) =>
+        customizationOptions.some((option) => option.id === id) &&
+        (!selectedItem || selectedItem.customizationOptionIds.includes(id))
     );
   }
 
@@ -169,7 +185,7 @@
                 Select Milk <span class="text-red-400">(required)</span>
               </h3>
               <div class="grid grid-cols-3 gap-2 mb-4">
-                {#each milkOptions as milk}
+                {#each visibleMilkOptions as milk (milk.id)}
                   <button
                     class="p-2 rounded-md text-center {selectedMilkOptionId === milk.id
                       ? 'bg-accent text-white'
@@ -190,17 +206,24 @@
 
             {#if selectedItem.allows_customizations}
               <h3 class="text-lg font-semibold mb-2">Customizations</h3>
-              <div class="space-y-2 mb-4">
-                {#each customizationOptions as customization}
-                  <label class="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedCustomizationOptionIds.includes(customization.id)}
-                      on:change={() => toggleCustomization(customization.id)}
-                      class="mr-2"
-                    />
-                    {customization.name}
-                  </label>
+              <div class="mb-4">
+                {#each visibleCustomizationGroups as group (group.type)}
+                  <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-1">
+                    {group.type}
+                  </p>
+                  <div class="space-y-2">
+                    {#each group.options as customization (customization.id)}
+                      <label class="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedCustomizationOptionIds.includes(customization.id)}
+                          on:change={() => toggleCustomization(customization.id)}
+                          class="mr-2"
+                        />
+                        {customization.name}
+                      </label>
+                    {/each}
+                  </div>
                 {/each}
               </div>
             {/if}
