@@ -1,7 +1,7 @@
 # Cafecito
 ## Overview
 
-Cafecito is a web application that was created to help me track orders when running neighborhood pop-up coffee events. It's built using Svelte for the frontend, Vite as the build tool, and Supabase for backend services.
+Cafecito is a web application that was created to help me track orders when running neighborhood pop-up coffee events. It's a Svelte SPA built with Vite, served by a Cloudflare Worker that also provides the API, backed by D1, with barista access gated by Cloudflare Access.
 
 ## Getting Started
 
@@ -33,6 +33,24 @@ deploy. Two self-hosted applications are required:
 Each needs a policy allowing the barista email addresses. Copy the Application
 Audience (AUD) tag into `ACCESS_AUD` and the team domain into
 `ACCESS_TEAM_DOMAIN` in `wrangler.toml`.
+
+### GitHub Actions secrets
+
+The `deploy` job in `.github/workflows/deploy.yml` needs two **repository**
+secrets — set them under the repo's Settings → Secrets and variables →
+Actions:
+
+| Secret | Where it comes from |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare dashboard → My Profile → API Tokens → Create Token, with **Workers Scripts: Edit**, **D1: Edit**, and **Account Settings: Read** permissions |
+| `CLOUDFLARE_ACCOUNT_ID` | The account id shown in the sidebar of any zone's overview page in the Cloudflare dashboard |
+
+These are distinct from `COOKIE_SECRET`: `COOKIE_SECRET` is a Worker secret
+set via `wrangler secret put` (see Setup, above) and lives only in
+Cloudflare — it never touches CI. Without the two repo secrets above, the
+`deploy` job will fail on merge to `main` (the `verify` job's `wrangler
+deploy --dry-run` check does not need them, which is why it also runs safely
+on pull requests from forks).
 
 ### Development
 
