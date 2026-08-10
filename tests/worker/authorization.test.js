@@ -108,11 +108,44 @@ describe('identity is never taken from the request body', () => {
   })
 
   it('rejects a tampered cookie rather than trusting it', async () => {
-    const response = await SELF.fetch(`${ORIGIN}/api/orders/active`, {
-      headers: { Cookie: 'cafecito_cid=forged-id.badsignature' },
+    // Seed a real order under a genuine customer id, then forge a cookie that
+    // reuses that exact id with a garbage signature -- what an attacker who has
+    // observed (or guessed) a real customer id, but not the HMAC secret, would
+    // send. If the server ever resolved identity from the unverified id in the
+    // cookie for *this* request -- even while separately minting a fresh
+    // Set-Cookie for future requests -- it would find and return Alice's real
+    // order. Only a server that discards the forged id entirely and mints an
+    // unrelated fresh identity is safe, so this is the shape that actually
+    // discriminates the bug from a correct implementation.
+    const menuResponse = await SELF.fetch(`${ORIGIN}/api/menu`)
+    const aliceCookie = menuResponse.headers.get('Set-Cookie').split(';')[0]
+    const aliceId = aliceCookie.slice('cafecito_cid='.length, aliceCookie.lastIndexOf('.'))
+    const menu = await menuResponse.json()
+
+    await SELF.fetch(`${ORIGIN}/api/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: aliceCookie },
+      body: JSON.stringify({
+        customerName: 'Ada',
+        submissionId: crypto.randomUUID(),
+        items: [{ item_id: menu.items[0].id, milk_option_id: null, quantity: 1, customization_option_ids: [] }],
+      }),
     })
-    // A bad cookie is replaced with a fresh identity, not honoured.
-    expect(response.headers.get('Set-Cookie')).toContain('cafecito_cid=')
+
+    const forgedCookie = `cafecito_cid=${aliceId}.badsignature`
+    const response = await SELF.fetch(`${ORIGIN}/api/orders/active`, {
+      headers: { Cookie: forgedCookie },
+    })
+
+    // A bad cookie is replaced with a fresh identity, not honoured: the
+    // Set-Cookie carries an id different from the one we forged, and the
+    // active-order lookup for that fresh identity does not surface Alice's
+    // real order.
+    const newCookie = response.headers.get('Set-Cookie')
+    expect(newCookie).toContain('cafecito_cid=')
+    const newCookieValue = newCookie.split(';')[0]
+    const newId = newCookieValue.slice('cafecito_cid='.length, newCookieValue.lastIndexOf('.'))
+    expect(newId).not.toBe(aliceId)
     expect(await response.json()).toBeNull()
   })
 })
