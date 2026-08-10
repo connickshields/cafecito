@@ -103,9 +103,8 @@ const LINK_TABLES = {
 }
 
 function tableFor(kind) {
-  const table = MENU_KINDS[kind]
-  if (!table) throw new Error(`Unknown menu kind: ${kind}`)
-  return table
+  if (!Object.hasOwn(MENU_KINDS, kind)) throw new Error(`Unknown menu kind: ${kind}`)
+  return MENU_KINDS[kind]
 }
 
 export async function getMenuForManagement(db) {

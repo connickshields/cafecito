@@ -166,7 +166,7 @@ export async function handleMenuAdmin(request, env, url) {
   if (!match) return notFound
 
   const [, kind, tail] = match
-  if (!MENU_KINDS[kind]) return notFound
+  if (!Object.hasOwn(MENU_KINDS, kind)) return notFound
 
   if (tail === undefined && method === 'POST') {
     return create(env, kind, await readJsonBody(request))

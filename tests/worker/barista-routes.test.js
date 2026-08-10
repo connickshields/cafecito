@@ -37,13 +37,17 @@ describe('barista routes without Access', () => {
       ['PATCH', '/api/barista/items/1'],
       ['PATCH', '/api/barista/milk/1'],
       ['PATCH', '/api/barista/customizations/1'],
+      ['GET', '/api/barista/menu'],
+      ['POST', '/api/barista/menu/items'],
+      ['PATCH', '/api/barista/menu/items/1'],
+      ['PATCH', '/api/barista/menu/milk/order'],
     ]
 
     for (const [method, path] of routes) {
       const response = await SELF.fetch(`${ORIGIN}${path}`, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: method === 'PATCH' ? JSON.stringify({ status: 'completed', available: false }) : undefined,
+        body: method === 'GET' ? undefined : JSON.stringify({ status: 'completed', name: 'x' }),
       })
       expect(response.status, `${method} ${path}`).toBe(403)
     }

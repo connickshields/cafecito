@@ -80,10 +80,22 @@ describe('POST /api/barista/menu/:kind', () => {
     expect((await send('POST', '/api/barista/menu/customizations', { name: 'Nutmeg' })).status).toBe(400)
   })
 
+  it('accepts a 60-character name', async () => {
+    const result = await send('POST', '/api/barista/menu/items', { name: 'x'.repeat(60) })
+    expect(result.status).toBe(201)
+  })
+
   it('rejects an invalid size', async () => {
     for (const size of [0, 65, 8.5, 'eight']) {
       const result = await send('POST', '/api/barista/menu/items', { name: `Drink ${size}`, size })
       expect(result.status, `size=${size}`).toBe(400)
+    }
+  })
+
+  it('accepts the boundary sizes 1 and 64', async () => {
+    for (const size of [1, 64]) {
+      const result = await send('POST', '/api/barista/menu/items', { name: `Boundary ${size}`, size })
+      expect(result.status, `size=${size}`).toBe(201)
     }
   })
 
@@ -95,10 +107,31 @@ describe('POST /api/barista/menu/:kind', () => {
     expect(result.status).toBe(400)
   })
 
+  it('accepts a 200-character description', async () => {
+    const result = await send('POST', '/api/barista/menu/items', {
+      name: 'Wordy But Fine',
+      description: 'x'.repeat(200),
+    })
+    expect(result.status).toBe(201)
+  })
+
   it('rejects links to an unknown option', async () => {
     const result = await send('POST', '/api/barista/menu/items', {
       name: 'Ghost Latte',
       milkOptionIds: [99999],
+    })
+    expect(result.status).toBe(400)
+  })
+
+  it('rejects a link id that is not a JS integer, even if SQLite would coerce it', async () => {
+    // D1/SQLite applies column-affinity coercion to bound parameters, so a
+    // numeric-looking string id would otherwise slip past optionIdsExist's
+    // SQL check and silently link. readIdList must reject it before that.
+    const menu = await call('GET', '/api/barista/menu')
+    const oatId = menu.body.milkOptions[0].id
+    const result = await send('POST', '/api/barista/menu/items', {
+      name: 'Stringly Linked',
+      milkOptionIds: [String(oatId)],
     })
     expect(result.status).toBe(400)
   })
@@ -196,6 +229,22 @@ describe('PATCH /api/barista/menu/:kind/order', () => {
     expect(after.body.milkOptions.map((m) => m.id)).toEqual([...ids].reverse())
   })
 
+  it('dedupes a repeated id rather than rejecting it, as long as the set still matches', async () => {
+    const menu = await call('GET', '/api/barista/menu')
+    const ids = menu.body.milkOptions.map((m) => m.id)
+
+    // A repeated id inflates the list past active.length unless readIdList
+    // dedupes first -- this pins that the dedup, not a length coincidence, is
+    // what lets an otherwise-complete-but-repeated set through.
+    const result = await send('PATCH', '/api/barista/menu/milk/order', {
+      ids: [...ids].reverse().concat(ids[0]),
+    })
+    expect(result.status).toBe(200)
+
+    const after = await call('GET', '/api/barista/menu')
+    expect(after.body.milkOptions.map((m) => m.id)).toEqual([...ids].reverse())
+  })
+
   it('rejects an incomplete id set', async () => {
     const menu = await call('GET', '/api/barista/menu')
     const ids = menu.body.milkOptions.map((m) => m.id)
@@ -213,5 +262,16 @@ describe('PATCH /api/barista/menu/:kind/order', () => {
 
   it('rejects a non-array ids', async () => {
     expect((await send('PATCH', '/api/barista/menu/milk/order', { ids: 'nope' })).status).toBe(400)
+  })
+
+  it('rejects an id set containing a non-integer', async () => {
+    const menu = await call('GET', '/api/barista/menu')
+    const ids = menu.body.milkOptions.map((m) => m.id)
+
+    const withString = await send('PATCH', '/api/barista/menu/milk/order', { ids: [...ids.slice(1), 'two'] })
+    expect(withString.status).toBe(400)
+
+    const withFloat = await send('PATCH', '/api/barista/menu/milk/order', { ids: [...ids.slice(1), 1.5] })
+    expect(withFloat.status).toBe(400)
   })
 })
