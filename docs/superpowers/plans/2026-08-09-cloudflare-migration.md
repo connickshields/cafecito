@@ -2200,6 +2200,16 @@ const AVAILABILITY_ROUTES = {
   customizations: 'customization_options',
 }
 
+// `.catch(() => ({}))` alone is not enough: the literal `null` PARSES
+// successfully, so body.status would throw a TypeError and surface as a 500
+// instead of the clean 400 these routes promise. Normalize any non-object
+// result — null, number, string — to an empty object. An array passes through
+// but degrades safely, since its fields read undefined and fail validation.
+async function readJsonBody(request) {
+  const body = await request.json().catch(() => null)
+  return typeof body === 'object' && body !== null ? body : {}
+}
+
 // The security boundary. Every /api/barista/* request passes through here
 // before any handler runs, so a new route cannot ship unprotected.
 export async function requireBarista(request, env) {
@@ -2228,7 +2238,7 @@ export async function handleBarista(request, env, url) {
 
   const statusMatch = path.match(/^\/api\/barista\/orders\/(\d+)$/)
   if (statusMatch && method === 'PATCH') {
-    const body = await request.json().catch(() => ({}))
+    const body = await readJsonBody(request)
     if (!VALID_STATUSES.has(body.status)) {
       return { status: 400, body: { error: 'Invalid status' } }
     }
@@ -2238,7 +2248,7 @@ export async function handleBarista(request, env, url) {
 
   const availabilityMatch = path.match(/^\/api\/barista\/(items|milk|customizations)\/(\d+)$/)
   if (availabilityMatch && method === 'PATCH') {
-    const body = await request.json().catch(() => ({}))
+    const body = await readJsonBody(request)
     if (typeof body.available !== 'boolean') {
       return { status: 400, body: { error: 'available must be a boolean' } }
     }
