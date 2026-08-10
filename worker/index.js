@@ -1,4 +1,5 @@
 import { CUSTOMER_COOKIE, customerCookieHeader, readCookie, signCustomerId, verifyCustomerCookie } from './auth.js'
+import { handleBarista, requireBarista } from './routes/barista.js'
 import { handleMenu } from './routes/menu.js'
 import { getActive, getDetails, getStats, postCancel, postOrder } from './routes/orders.js'
 
@@ -26,6 +27,15 @@ function respond({ status, body }, setCookie) {
 }
 
 async function handleApi(request, env, url) {
+  // Mount-point authorization: everything under /api/barista/* is gated here,
+  // so no individual handler can forget its own check.
+  if (url.pathname.startsWith('/api/barista/')) {
+    if (!(await requireBarista(request, env))) {
+      return json({ error: 'Forbidden' }, { status: 403 })
+    }
+    return respond(await handleBarista(request, env, url), null)
+  }
+
   const { customerId, setCookie } = await withCustomer(request, env)
   const path = url.pathname
   const method = request.method
