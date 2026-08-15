@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
   CUSTOMER_COOKIE,
+  PREVIEW_COOKIE,
   customerCookieHeader,
+  previewCookieHeader,
   readCookie,
   signCustomerId,
+  signPreviewGrant,
   verifyAccessJwt,
   verifyCustomerCookie,
+  verifyPreviewGrant,
+  verifyPreviewKey,
 } from '../worker/auth.js'
 
 const SECRET = 'test-secret'
@@ -201,5 +206,76 @@ describe('verifyAccessJwt', () => {
 
     const forgedToken = `${signingInput}.${encodedSig}`
     expect(await verifyAccessJwt(forgedToken, jwks, AUD)).toBeNull()
+  })
+})
+
+describe('preview grant', () => {
+  const SECRET = 'preview-secret-value'
+
+  it('round-trips a grant it signed', async () => {
+    const signed = await signPreviewGrant(SECRET)
+    expect(await verifyPreviewGrant(signed, SECRET)).toBe(true)
+  })
+
+  it('rejects a grant signed with a different key', async () => {
+    const signed = await signPreviewGrant('some-other-secret')
+    expect(await verifyPreviewGrant(signed, SECRET)).toBe(false)
+  })
+
+  it('rejects a tampered, empty, or missing grant', async () => {
+    const signed = await signPreviewGrant(SECRET)
+    expect(await verifyPreviewGrant(`${signed}x`, SECRET)).toBe(false)
+    expect(await verifyPreviewGrant('preview:barista.', SECRET)).toBe(false)
+    expect(await verifyPreviewGrant('', SECRET)).toBe(false)
+    expect(await verifyPreviewGrant(null, SECRET)).toBe(false)
+  })
+
+  it('rejects a grant when the Worker has no key configured', async () => {
+    const signed = await signPreviewGrant(SECRET)
+    expect(await verifyPreviewGrant(signed, undefined)).toBe(false)
+    expect(await verifyPreviewGrant(signed, '')).toBe(false)
+  })
+
+  it('refuses a customer cookie presented as a preview grant', async () => {
+    // Both are signed by the same HMAC helper with the same secret; only the
+    // signed token differs. Without the token check this would pass.
+    const customer = await signCustomerId('some-customer-id', SECRET)
+    expect(await verifyPreviewGrant(customer, SECRET)).toBe(false)
+  })
+})
+
+describe('verifyPreviewKey', () => {
+  const SECRET = 'preview-secret-value'
+
+  it('accepts the correct key', async () => {
+    expect(await verifyPreviewKey(SECRET, SECRET)).toBe(true)
+  })
+
+  it('rejects a wrong key', async () => {
+    expect(await verifyPreviewKey('wrong', SECRET)).toBe(false)
+    expect(await verifyPreviewKey(`${SECRET}x`, SECRET)).toBe(false)
+  })
+
+  it('rejects empty or missing input on either side', async () => {
+    expect(await verifyPreviewKey('', SECRET)).toBe(false)
+    expect(await verifyPreviewKey(null, SECRET)).toBe(false)
+    expect(await verifyPreviewKey(SECRET, '')).toBe(false)
+    expect(await verifyPreviewKey(SECRET, undefined)).toBe(false)
+  })
+})
+
+describe('previewCookieHeader', () => {
+  it('carries the domain so one cookie spans every PR alias', () => {
+    const header = previewCookieHeader('barista.sig', 'connickshields.workers.dev')
+    expect(header).toContain('cafecito_preview=barista.sig')
+    expect(header).toContain('Domain=connickshields.workers.dev')
+    expect(header).toContain('HttpOnly')
+    expect(header).toContain('Secure')
+    expect(header).toContain('SameSite=Lax')
+    expect(header).toContain('Path=/')
+  })
+
+  it('omits Domain when there is none to set', () => {
+    expect(previewCookieHeader('barista.sig', null)).not.toContain('Domain=')
   })
 })

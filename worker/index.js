@@ -1,4 +1,14 @@
-import { CUSTOMER_COOKIE, customerCookieHeader, readCookie, signCustomerId, verifyCustomerCookie } from './auth.js'
+import {
+  CUSTOMER_COOKIE,
+  customerCookieHeader,
+  previewCookieHeader,
+  readCookie,
+  signCustomerId,
+  signPreviewGrant,
+  verifyCustomerCookie,
+  verifyPreviewKey,
+} from './auth.js'
+import { deploymentKind, previewCookieDomain } from './deployment.js'
 import { handleBarista, requireBarista } from './routes/barista.js'
 import { handleMenu } from './routes/menu.js'
 import { getActive, getDetails, getStats, postCancel, postOrder } from './routes/orders.js'
@@ -74,17 +84,59 @@ async function handleApi(request, env, url) {
   return respond({ status: 404, body: { error: 'Not found' } }, setCookie)
 }
 
+// Trades ?preview_key=<secret> for a signed cookie, then redirects to the same
+// URL without the key so it cannot linger in the address bar, the browser's
+// history, or a link someone pastes into an issue.
+//
+// Exported for the unconfigured-secret case, which cannot be reached through
+// SELF.fetch: the test Worker always has the binding.
+export async function handlePreviewKeyExchange(request, env, url) {
+  if (!env.PREVIEW_BARISTA_KEY) {
+    // Loud, like the missing-COOKIE_SECRET path: a silent no-op here would
+    // surface much later as an inexplicable 403.
+    return json({ error: 'PREVIEW_BARISTA_KEY is not configured' }, { status: 500 })
+  }
+
+  const presented = url.searchParams.get('preview_key')
+  if (!(await verifyPreviewKey(presented, env.PREVIEW_BARISTA_KEY))) {
+    return json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const target = new URL(url)
+  target.searchParams.delete('preview_key')
+  const signed = await signPreviewGrant(env.PREVIEW_BARISTA_KEY)
+
+  // url.pathname preserves leading double slashes, and a Location beginning
+  // with `//` is protocol-relative: a browser resolves it to another origin
+  // entirely. Collapse any run of leading slashes to exactly one.
+  const path = `/${target.pathname.replace(/^\/+/, '')}`
+
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: `${path}${target.search}${target.hash}`,
+      'Set-Cookie': previewCookieHeader(signed, previewCookieDomain(url.hostname)),
+    },
+  })
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url)
 
-    if (url.pathname.startsWith('/api/')) {
-      try {
-        return await handleApi(request, env, url)
-      } catch (error) {
-        console.error('API error', error)
-        return json({ error: 'Internal error' }, { status: 500 })
+    try {
+      // Preview only. On production deploymentKind never returns 'preview', so
+      // the parameter is ignored there and falls through to normal routing.
+      if (deploymentKind(url.hostname) === 'preview' && url.searchParams.has('preview_key')) {
+        return await handlePreviewKeyExchange(request, env, url)
       }
+
+      if (url.pathname.startsWith('/api/')) {
+        return await handleApi(request, env, url)
+      }
+    } catch (error) {
+      console.error('API error', error)
+      return json({ error: 'Internal error' }, { status: 500 })
     }
 
     return env.ASSETS.fetch(request)

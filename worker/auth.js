@@ -65,6 +65,46 @@ export function customerCookieHeader(signed) {
   ].join('; ')
 }
 
+export const PREVIEW_COOKIE = 'cafecito_preview'
+const PREVIEW_TOKEN = 'preview:barista'
+const PREVIEW_COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
+
+export async function signPreviewGrant(secret) {
+  return signCustomerId(PREVIEW_TOKEN, secret)
+}
+
+// A cookie is a grant only when it carries PREVIEW_TOKEN under this secret --
+// a customer cookie is signed by the same helper and would otherwise verify.
+export async function verifyPreviewGrant(value, secret) {
+  if (!value || !secret) return false
+  return (await verifyCustomerCookie(value, secret)) === PREVIEW_TOKEN
+}
+
+// Validates a presented key without ever comparing the secret as a string:
+// sign a fixed token with the PRESENTED key, then verify that signature with
+// the REAL key. The comparison is constant-time (see verifyCustomerCookie)
+// and never string-compares the secret — but it is not exact-match: HMAC
+// zero-pads keys shorter than its 64-byte block, so inputs differing only by
+// trailing NUL padding are treated as equal.
+export async function verifyPreviewKey(presented, secret) {
+  if (!presented || !secret) return false
+  const candidate = await signCustomerId(PREVIEW_TOKEN, presented)
+  return (await verifyCustomerCookie(candidate, secret)) === PREVIEW_TOKEN
+}
+
+export function previewCookieHeader(signed, domain) {
+  const parts = [
+    `${PREVIEW_COOKIE}=${signed}`,
+    'Path=/',
+    'HttpOnly',
+    'Secure',
+    'SameSite=Lax',
+    `Max-Age=${PREVIEW_COOKIE_MAX_AGE}`,
+  ]
+  if (domain) parts.push(`Domain=${domain}`)
+  return parts.join('; ')
+}
+
 export function readCookie(request, name) {
   const header = request.headers.get('Cookie')
   if (!header) return null

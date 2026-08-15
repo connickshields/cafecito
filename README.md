@@ -164,10 +164,55 @@ nothing fails the build — it just takes the site down.
 **What previews cover:** the customer ordering flow — menu, cart, order
 submission, status, and the queue estimate.
 
-**What they do not cover:** barista data (`/api/barista/*` returns 403 because
-no Access application covers the preview hostname — the dashboard renders and
-shows its error banner), anything Access-specific such as the login redirect,
-and custom-domain behavior.
+**What they do not cover:** anything Access-specific, such as the login
+redirect, and custom-domain behavior.
+
+**Reaching the barista view on a preview.** Cloudflare Access covers
+`cafecito.connick.me` only, so previews have no Access in front of them and
+`/api/barista/*` would otherwise always 403. A preview-only credential fills
+that gap.
+
+One-time setup:
+
+    openssl rand -base64 32 | wrangler versions secret put PREVIEW_BARISTA_KEY --env preview
+
+Then open any preview with the key appended once per browser:
+
+    https://pr-<number>-cafecito-preview.<subdomain>.workers.dev/barista?preview_key=<key>
+
+The Worker verifies the key, sets a signed cookie, and redirects to the same
+URL without the key, so it does not linger in the address bar or in history.
+The cookie is scoped to `<subdomain>.workers.dev`, so it covers every later PR
+preview too. Keep the key in a password manager; rotating it is
+
+    openssl rand -base64 32 | wrangler versions secret put PREVIEW_BARISTA_KEY --env preview
+
+which invalidates every outstanding cookie. The `--env preview` flag is not
+optional — the same command run without it writes the key to the
+**production** Worker instead, which must never happen (see below).
+
+It is `versions secret put`, not `secret put`. Previews are published with
+`wrangler versions upload`, and plain `secret put` refuses to touch a Worker
+managed that way because it would force a deploy: *"This limitation exists to
+prevent accidental deployment when using Worker versions and secrets
+together."* Later `versions upload` runs inherit the secret, so this is a
+one-time step.
+
+**`PREVIEW_BARISTA_KEY` must never exist on a Worker bound to the production
+database.** That is the one barrier, and it is why the secret is only ever set
+with `--env preview`. Everything else is secondary: if production somehow
+acquired a `.workers.dev` hostname tomorrow, the barista API there would still
+return 403, because `verifyPreviewGrant` refuses every grant when the key is
+absent.
+
+**`wrangler dev` needs no key in local mode.** A deployed Worker never sees a
+`localhost` hostname, so the barista view is simply open locally, against your
+local database — except under `wrangler dev --remote`, which binds the
+**production** D1 while still serving a `localhost` hostname, so in that mode
+the barista view opens over production data.
+
+Sign-out on a preview navigates to `/cdn-cgi/access/logout`, which does not
+exist there; the SPA fallback serves the app again rather than erroring.
 
 **Resetting the preview database.** All PRs share one preview database, so it
 accumulates test orders, and migrations from abandoned PRs stay applied
