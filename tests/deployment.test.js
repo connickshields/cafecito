@@ -28,6 +28,10 @@ describe('deploymentKind', () => {
     expect(deploymentKind('workers.dev.evil.com')).toBe('production')
     expect(deploymentKind('notworkers.dev')).toBe('production')
     expect(deploymentKind('workers.dev')).toBe('production')
+    // The discriminating case: `.workers.dev` appears as a substring but not
+    // as the suffix. `includes` would hand this attacker-registrable domain
+    // the preview branch; `endsWith` correctly refuses it.
+    expect(deploymentKind('x.workers.dev.evil.com')).toBe('production')
   })
 })
 
@@ -46,5 +50,6 @@ describe('previewCookieDomain', () => {
     expect(previewCookieDomain('cafecito.connick.me')).toBeNull()
     expect(previewCookieDomain('localhost')).toBeNull()
     expect(previewCookieDomain('workers.dev.evil.com')).toBeNull()
+    expect(previewCookieDomain('x.workers.dev.evil.com')).toBeNull()
   })
 })
