@@ -79,7 +79,7 @@ anything else.
 One-time setup, out of band:
 
 ```
-openssl rand -base64 32 | wrangler secret put PREVIEW_BARISTA_KEY --env preview
+openssl rand -base64 32 | wrangler versions secret put PREVIEW_BARISTA_KEY --env preview
 ```
 
 The secret exists only on the preview Worker. It is absent from the repository,

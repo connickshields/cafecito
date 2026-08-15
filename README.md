@@ -174,7 +174,7 @@ that gap.
 
 One-time setup:
 
-    openssl rand -base64 32 | wrangler secret put PREVIEW_BARISTA_KEY --env preview
+    openssl rand -base64 32 | wrangler versions secret put PREVIEW_BARISTA_KEY --env preview
 
 Then open any preview with the key appended once per browser:
 
@@ -185,11 +185,18 @@ URL without the key, so it does not linger in the address bar or in history.
 The cookie is scoped to `<subdomain>.workers.dev`, so it covers every later PR
 preview too. Keep the key in a password manager; rotating it is
 
-    openssl rand -base64 32 | wrangler secret put PREVIEW_BARISTA_KEY --env preview
+    openssl rand -base64 32 | wrangler versions secret put PREVIEW_BARISTA_KEY --env preview
 
 which invalidates every outstanding cookie. The `--env preview` flag is not
 optional — the same command run without it writes the key to the
 **production** Worker instead, which must never happen (see below).
+
+It is `versions secret put`, not `secret put`. Previews are published with
+`wrangler versions upload`, and plain `secret put` refuses to touch a Worker
+managed that way because it would force a deploy: *"This limitation exists to
+prevent accidental deployment when using Worker versions and secrets
+together."* Later `versions upload` runs inherit the secret, so this is a
+one-time step.
 
 **`PREVIEW_BARISTA_KEY` must never exist on a Worker bound to the production
 database.** That is the one barrier, and it is why the secret is only ever set
