@@ -13,6 +13,7 @@ export default defineWorkersConfig({
           bindings: {
             TEST_MIGRATIONS: migrations,
             COOKIE_SECRET: 'test-cookie-secret',
+            PREVIEW_BARISTA_KEY: 'test-preview-key',
           },
         },
       },
