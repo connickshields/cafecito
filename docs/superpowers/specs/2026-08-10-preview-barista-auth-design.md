@@ -152,15 +152,12 @@ signature and it is ignored.
 
 ## 4. What cannot happen on production
 
-Four independent conditions would all have to fail together:
-
-1. Production would need a `.workers.dev` hostname. It sets `workers_dev = false`
-   and serves only the `cafecito.connick.me` custom domain.
-2. `PREVIEW_BARISTA_KEY` would have to be set on the production Worker. Secrets
-   are per-Worker and it is set only with `--env preview`.
-3. An attacker would need the 256-bit key.
-4. `deploymentKind` would have to misclassify a production hostname, which its
-   production-by-default rule prevents.
+**`PREVIEW_BARISTA_KEY` must never exist on a Worker bound to the production
+database.** That is the one barrier, and it is why the secret is only ever set
+with `--env preview`. Everything else is secondary: if production somehow
+acquired a `.workers.dev` hostname tomorrow, the barista API there would still
+return 403, because `verifyPreviewGrant` refuses every grant when the key is
+absent.
 
 ## 5. Testing
 

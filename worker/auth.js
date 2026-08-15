@@ -82,8 +82,10 @@ export async function verifyPreviewGrant(value, secret) {
 
 // Validates a presented key without ever comparing the secret as a string:
 // sign a fixed token with the PRESENTED key, then verify that signature with
-// the REAL key. They agree only when the keys match, and crypto.subtle.verify
-// is constant-time (see verifyCustomerCookie).
+// the REAL key. The comparison is constant-time (see verifyCustomerCookie)
+// and never string-compares the secret — but it is not exact-match: HMAC
+// zero-pads keys shorter than its 64-byte block, so inputs differing only by
+// trailing NUL padding are treated as equal.
 export async function verifyPreviewKey(presented, secret) {
   if (!presented || !secret) return false
   const candidate = await signCustomerId(PREVIEW_TOKEN, presented)
