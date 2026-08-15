@@ -1,4 +1,11 @@
-import { fetchAccessJwks, verifyAccessJwt } from '../auth.js'
+import {
+  fetchAccessJwks,
+  PREVIEW_COOKIE,
+  readCookie,
+  verifyAccessJwt,
+  verifyPreviewGrant,
+} from '../auth.js'
+import { deploymentKind } from '../deployment.js'
 import { getOrders, updateOrderStatus } from '../db.js'
 import { readJsonBody } from './body.js'
 import { handleMenuAdmin } from './menu.js'
@@ -7,7 +14,24 @@ const VALID_STATUSES = new Set(['pending', 'in_progress', 'completed', 'cancelle
 
 // The security boundary. Every /api/barista/* request passes through here
 // before any handler runs, so a new route cannot ship unprotected.
+//
+// The local and preview branches are unreachable from production: a deployed
+// production Worker never sees a localhost or *.workers.dev hostname, because
+// production sets workers_dev = false and serves only its custom domain. On
+// anything else -- including a hostname nobody anticipated -- deploymentKind
+// answers 'production' and only a valid Access JWT gets through.
 export async function requireBarista(request, env) {
+  const deployment = deploymentKind(new URL(request.url).hostname)
+
+  // wrangler dev has no Access in front of it, and the database is local.
+  if (deployment === 'local') return true
+
+  // Previews run against a throwaway database. The grant is minted by the
+  // ?preview_key= exchange in index.js.
+  if (deployment === 'preview') {
+    return verifyPreviewGrant(readCookie(request, PREVIEW_COOKIE), env.PREVIEW_BARISTA_KEY)
+  }
+
   const token = request.headers.get('Cf-Access-Jwt-Assertion')
   if (!token) return false
   try {
