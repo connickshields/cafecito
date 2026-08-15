@@ -106,10 +106,15 @@ export async function handlePreviewKeyExchange(request, env, url) {
   target.searchParams.delete('preview_key')
   const signed = await signPreviewGrant(env.PREVIEW_BARISTA_KEY)
 
+  // url.pathname preserves leading double slashes, and a Location beginning
+  // with `//` is protocol-relative: a browser resolves it to another origin
+  // entirely. Collapse any run of leading slashes to exactly one.
+  const path = `/${target.pathname.replace(/^\/+/, '')}`
+
   return new Response(null, {
     status: 302,
     headers: {
-      Location: `${target.pathname}${target.search}${target.hash}`,
+      Location: `${path}${target.search}${target.hash}`,
       'Set-Cookie': previewCookieHeader(signed, previewCookieDomain(url.hostname)),
     },
   })
@@ -119,19 +124,19 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url)
 
-    // Preview only. On production deploymentKind never returns 'preview', so
-    // the parameter is ignored there and falls through to normal routing.
-    if (deploymentKind(url.hostname) === 'preview' && url.searchParams.has('preview_key')) {
-      return handlePreviewKeyExchange(request, env, url)
-    }
-
-    if (url.pathname.startsWith('/api/')) {
-      try {
-        return await handleApi(request, env, url)
-      } catch (error) {
-        console.error('API error', error)
-        return json({ error: 'Internal error' }, { status: 500 })
+    try {
+      // Preview only. On production deploymentKind never returns 'preview', so
+      // the parameter is ignored there and falls through to normal routing.
+      if (deploymentKind(url.hostname) === 'preview' && url.searchParams.has('preview_key')) {
+        return await handlePreviewKeyExchange(request, env, url)
       }
+
+      if (url.pathname.startsWith('/api/')) {
+        return await handleApi(request, env, url)
+      }
+    } catch (error) {
+      console.error('API error', error)
+      return json({ error: 'Internal error' }, { status: 500 })
     }
 
     return env.ASSETS.fetch(request)

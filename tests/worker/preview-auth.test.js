@@ -120,4 +120,18 @@ describe('the preview key exchange', () => {
     expect((await response.json()).error).toContain('PREVIEW_BARISTA_KEY')
     expect(response.headers.get('Set-Cookie')).toBeNull()
   })
+
+  it('cannot be turned into a protocol-relative open redirect', async () => {
+    // url.pathname preserves leading double slashes, and `//evil.com/x` in a
+    // Location header is protocol-relative: browsers resolve it to another
+    // origin entirely.
+    const response = await SELF.fetch(
+      `${PREVIEW}//evil.com/x?preview_key=${encodeURIComponent(KEY)}`,
+      { redirect: 'manual' }
+    )
+
+    const location = response.headers.get('Location')
+    expect(location.startsWith('//')).toBe(false)
+    expect(location).toBe('/evil.com/x')
+  })
 })
