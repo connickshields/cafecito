@@ -66,7 +66,7 @@ export function customerCookieHeader(signed) {
 }
 
 export const PREVIEW_COOKIE = 'cafecito_preview'
-const PREVIEW_TOKEN = 'barista'
+const PREVIEW_TOKEN = 'preview:barista'
 const PREVIEW_COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
 
 export async function signPreviewGrant(secret) {

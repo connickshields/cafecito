@@ -225,7 +225,7 @@ describe('preview grant', () => {
   it('rejects a tampered, empty, or missing grant', async () => {
     const signed = await signPreviewGrant(SECRET)
     expect(await verifyPreviewGrant(`${signed}x`, SECRET)).toBe(false)
-    expect(await verifyPreviewGrant('barista.', SECRET)).toBe(false)
+    expect(await verifyPreviewGrant('preview:barista.', SECRET)).toBe(false)
     expect(await verifyPreviewGrant('', SECRET)).toBe(false)
     expect(await verifyPreviewGrant(null, SECRET)).toBe(false)
   })

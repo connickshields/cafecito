@@ -130,8 +130,8 @@ no new cryptographic code is introduced. Keeping this inside `auth.js` lets
 
 ```js
 export const PREVIEW_COOKIE = 'cafecito_preview'
-const PREVIEW_TOKEN = 'barista'                          // not exported
-export async function signPreviewGrant(secret)           // -> 'barista.<sig>'
+const PREVIEW_TOKEN = 'preview:barista'                   // not exported
+export async function signPreviewGrant(secret)           // -> 'preview:barista.<sig>'
 export async function verifyPreviewGrant(value, secret)  // -> boolean
 export async function verifyPreviewKey(presented, secret)// -> boolean (§3.2)
 export function previewCookieHeader(signed, domain)
