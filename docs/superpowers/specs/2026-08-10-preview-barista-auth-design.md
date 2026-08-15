@@ -195,8 +195,8 @@ with a constructed `Request`, as `barista-routes.test.js` already does for
 ## 6. Out of scope, accepted
 
 Sign-out on a preview navigates to `/cdn-cgi/access/logout`, which does not
-exist there, so it 404s. Clearing the preview cookie instead is scope creep for
-a button nobody presses while testing.
+exist there; the SPA fallback serves the app again rather than erroring. Clearing
+the preview cookie instead is out of scope.
 
 ## 7. Unchanged
 

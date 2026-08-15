@@ -164,10 +164,42 @@ nothing fails the build — it just takes the site down.
 **What previews cover:** the customer ordering flow — menu, cart, order
 submission, status, and the queue estimate.
 
-**What they do not cover:** barista data (`/api/barista/*` returns 403 because
-no Access application covers the preview hostname — the dashboard renders and
-shows its error banner), anything Access-specific such as the login redirect,
-and custom-domain behavior.
+**What they do not cover:** anything Access-specific, such as the login
+redirect, and custom-domain behavior.
+
+**Reaching the barista view on a preview.** Cloudflare Access covers
+`cafecito.connick.me` only, so previews have no Access in front of them and
+`/api/barista/*` would otherwise always 403. A preview-only credential fills
+that gap.
+
+One-time setup:
+
+    openssl rand -base64 32 | wrangler secret put PREVIEW_BARISTA_KEY --env preview
+
+Then open any preview with the key appended once per browser:
+
+    https://pr-<number>-cafecito-preview.<subdomain>.workers.dev/barista?preview_key=<key>
+
+The Worker verifies the key, sets a signed cookie, and redirects to the same
+URL without the key, so it does not linger in the address bar or in history.
+The cookie is scoped to `<subdomain>.workers.dev`, so it covers every later PR
+preview too. Keep the key in a password manager; rotating it is another
+`wrangler secret put`, which invalidates every outstanding cookie.
+
+**This cannot open production.** Four independent things would all have to be
+wrong: production would need a `.workers.dev` hostname (it sets
+`workers_dev = false`), `PREVIEW_BARISTA_KEY` would have to be set on the
+production Worker (it is set with `--env preview`), someone would need the
+256-bit key, and `deploymentKind` in `worker/deployment.js` would have to
+misclassify — it answers `production` for every hostname it does not
+recognise. `tests/worker/preview-auth.test.js` pins the negative cases.
+
+**`wrangler dev` needs no key.** A deployed Worker never sees a `localhost`
+hostname, so the barista view is simply open locally, against your local
+database.
+
+Sign-out on a preview navigates to `/cdn-cgi/access/logout`, which does not
+exist there; the SPA fallback serves the app again rather than erroring.
 
 **Resetting the preview database.** All PRs share one preview database, so it
 accumulates test orders, and migrations from abandoned PRs stay applied
